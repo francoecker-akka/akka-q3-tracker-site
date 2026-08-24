@@ -162,6 +162,16 @@
   table.detail-table td { text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; padding: 8px 4px; border-top: 1px solid var(--grid); border-radius: 6px; }
   table.detail-table td.is-plan { color: var(--muted); font-weight: 600; }
 
+  .progress-rows { display: flex; flex-direction: column; gap: 16px; }
+  .progress-row { display: flex; align-items: center; gap: 14px; }
+  .progress-label { flex: 0 0 190px; display: flex; flex-direction: column; gap: 2px; }
+  .progress-label span:first-child { font-size: 13px; font-weight: 700; }
+  .progress-figure { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .progress-track { flex: 1 1 auto; height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 999px; }
+  .progress-pct { flex: 0 0 44px; text-align: right; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  @media (max-width: 560px) { .progress-row { flex-wrap: wrap; } .progress-label { flex-basis: 100%; } }
+
   footer.notes { font-size: 12px; color: var(--muted); line-height: 1.6; padding-top: 4px; }
   footer.notes a { color: inherit; }
 
@@ -254,6 +264,23 @@
       <p class="section-note">Dark numbers are results. Light gray numbers are the plan, not yet real. The current week is highlighted.</p>
       <div class="table-scroll">
         <table class="detail-table" id="detailTable"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title">This week so far (Aug 21–27)</p>
+      <p class="section-note">Progress against this week's plan, not a daily target. We haven't modeled which days of the week run hot or cold, so a day-by-day breakdown would just fake precision we don't have. Aug 24 is still an open day, its numbers will keep climbing.</p>
+      <div class="progress-rows">
+        <div class="progress-row">
+          <div class="progress-label"><span>Leads</span><span class="progress-figure">308 of 1,107 planned</span></div>
+          <div class="progress-track"><div class="progress-fill" style="width:28%; background:var(--ink-2)"></div></div>
+          <div class="progress-pct">28%</div>
+        </div>
+        <div class="progress-row">
+          <div class="progress-label"><span>Spend</span><span class="progress-figure">€11,686 of €31,743 planned</span></div>
+          <div class="progress-track"><div class="progress-fill" style="width:37%; background:var(--s-google)"></div></div>
+          <div class="progress-pct">37%</div>
+        </div>
       </div>
     </div>
 
