@@ -130,24 +130,25 @@
 
   table.ch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.ch-table th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); padding: 0 8px 8px 0; }
+  table.ch-table th.num { text-align: center; }
   table.ch-table td { padding: 9px 8px 9px 0; border-top: 1px solid var(--grid); vertical-align: middle; }
-  table.ch-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
+  table.ch-table td.num { font-variant-numeric: tabular-nums; text-align: center; }
   table.ch-table tr.group-row td { border-top: none; padding: 16px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
   table.ch-table tr.group-row:first-child td { padding-top: 0; }
   .ch-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
   .ch-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
   .spark-cell { width: 130px; }
 
-  #channelTable tbody tr:not(.group-row) { cursor: pointer; }
-  #channelTable tbody tr:not(.group-row):hover { background: var(--surface-2); }
+  #channelTable tbody tr[data-idx] { cursor: pointer; }
+  #channelTable tbody tr[data-idx]:hover { background: var(--surface-2); }
   #channelTable tbody tr.selected { background: var(--surface-2); }
   #channelTable tbody tr.selected .ch-name { text-decoration: underline; text-underline-offset: 3px; }
+  #channelTable tbody tr.group-row.selected td { color: var(--ink); }
 
   table.detail-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
-  table.detail-table th { text-align: center; font-size: 10.5px; font-weight: 600; color: var(--muted); padding: 0 4px 8px; white-space: nowrap; }
-  table.detail-table td { text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; padding: 8px 4px; border-top: 1px solid var(--grid); }
+  table.detail-table th { text-align: center; font-size: 10.5px; font-weight: 600; color: var(--muted); padding: 6px 4px; white-space: nowrap; border-radius: 6px; }
+  table.detail-table td { text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; padding: 8px 4px; border-top: 1px solid var(--grid); border-radius: 6px; }
   table.detail-table td.is-plan { color: var(--muted); font-weight: 600; }
-  table.detail-table th.is-current, table.detail-table td.is-current { box-shadow: inset 0 0 0 1.5px var(--ink); border-radius: 6px; }
 
   footer.notes { font-size: 12px; color: var(--muted); line-height: 1.6; padding-top: 4px; }
   footer.notes a { color: inherit; }
@@ -223,7 +224,7 @@
       <div class="table-scroll">
         <table class="ch-table" id="channelTable">
           <thead>
-            <tr><th>Channel</th><th style="text-align:right">Last actual week</th><th style="text-align:right">Next week (plan)</th><th>Trend</th><th>Status</th></tr>
+            <tr><th>Channel</th><th class="num">Last actual week</th><th class="num">Next week (plan)</th><th>Trend</th><th>Status</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -451,6 +452,14 @@
       '</tr>';
   }
 
+  function sumArrays(list) {
+    var out = weeks.map(function () { return 0; });
+    list.forEach(function (ch) { ch.data.forEach(function (v, i) { out[i] += v; }); });
+    return out;
+  }
+
+  function detailWeekLabel(w) { return w.replace('-', ':'); }
+
   var clickable = []; // flat list of { name, data, color } in row order, for click lookup
 
   function fillChannelTable() {
@@ -458,15 +467,20 @@
     var googleColor = resolveVar('--s-google'), metaColor = resolveVar('--s-meta'), tiktokColor = resolveVar('--s-tiktok'), redditColor = resolveVar('--s-reddit');
     var paidColors = { google: googleColor, meta: metaColor, tiktok: tiktokColor, reddit: redditColor };
     var otherColor = resolveVar('--ink-2');
+    var inkColor = resolveVar('--ink');
 
     clickable = [];
     paidChannels.forEach(function (ch) { clickable.push({ name: ch.name, data: ch.data, color: paidColors[ch.key] }); });
     otherChannels.forEach(function (ch) { clickable.push({ name: ch.name, data: ch.data, color: otherColor }); });
+    var paidTotalIdx = clickable.length;
+    clickable.push({ name: 'Paid (total)', data: sumArrays(paidChannels), color: inkColor });
+    var organicTotalIdx = clickable.length;
+    clickable.push({ name: 'Organic (total)', data: sumArrays(otherChannels), color: otherColor });
 
     var pi = 0;
-    var html = '<tr class="group-row"><td colspan="5">Paid channels</td></tr>';
+    var html = '<tr class="group-row" data-idx="' + paidTotalIdx + '"><td colspan="5">Paid channels</td></tr>';
     html += paidChannels.map(function (ch) { return channelRow(ch, paidColors[ch.key], pi++); }).join('');
-    html += '<tr class="group-row"><td colspan="5">Organic &amp; other channels</td></tr>';
+    html += '<tr class="group-row" data-idx="' + organicTotalIdx + '"><td colspan="5">Organic &amp; other channels</td></tr>';
     html += otherChannels.map(function (ch) { return channelRow(ch, otherColor, pi++); }).join('');
     tbody.innerHTML = html;
 
@@ -481,13 +495,17 @@
   function renderDetail(name, data, color) {
     document.getElementById('detailChannelName').textContent = name;
     var table = document.getElementById('detailTable');
+    var highlight = 'background:color-mix(in srgb, ' + color + ' 30%, transparent); font-weight:800;';
     var head = '<tr>' + weeks.map(function (w, i) {
-      return '<th class="' + (i === currentWeekIndex ? 'is-current' : '') + '">' + w + '</th>';
+      var style = i === currentWeekIndex ? highlight : '';
+      return '<th style="' + style + '">' + detailWeekLabel(w) + '</th>';
     }).join('') + '</tr>';
     var row = '<tr>' + data.map(function (v, i) {
       var isPlan = i >= actualCount;
-      var cls = (isPlan ? 'is-plan ' : '') + (i === currentWeekIndex ? 'is-current' : '');
-      return '<td class="' + cls + '">' + v.toLocaleString('en-US') + '</td>';
+      var isCurrent = i === currentWeekIndex;
+      var cls = isPlan && !isCurrent ? 'is-plan' : '';
+      var style = isCurrent ? highlight : '';
+      return '<td class="' + cls + '" style="' + style + '">' + v.toLocaleString('en-US') + '</td>';
     }).join('') + '</tr>';
     table.innerHTML = head + row;
   }
