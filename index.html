@@ -250,8 +250,8 @@
     </div>
 
     <div class="card">
-      <p class="section-title">Weekly breakdown — <span id="detailChannelName">Google</span></p>
-      <p class="section-note">Dark numbers are results. Light gray numbers are the plan, not yet real. The current week is boxed.</p>
+      <p class="section-title">Weekly breakdown: <span id="detailChannelName">Google</span></p>
+      <p class="section-note">Dark numbers are results. Light gray numbers are the plan, not yet real. The current week is highlighted.</p>
       <div class="table-scroll">
         <table class="detail-table" id="detailTable"></table>
       </div>
@@ -483,8 +483,6 @@
     return out;
   }
 
-  function detailWeekLabel(w) { return w.replace('-', ':'); }
-
   var clickable = []; // flat list of { name, data, color } in row order, for click lookup
 
   function fillChannelTable() {
@@ -523,7 +521,7 @@
     var highlight = 'background:color-mix(in srgb, ' + color + ' 30%, transparent); font-weight:800;';
     var head = '<tr>' + weeks.map(function (w, i) {
       var style = i === currentWeekIndex ? highlight : '';
-      return '<th style="' + style + '">' + detailWeekLabel(w) + '</th>';
+      return '<th style="' + style + '">' + w + '</th>';
     }).join('') + '</tr>';
     var row = '<tr>' + data.map(function (v, i) {
       var isPlan = i >= actualCount;
