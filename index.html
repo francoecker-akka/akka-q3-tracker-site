@@ -172,6 +172,25 @@
   .progress-pct { flex: 0 0 44px; text-align: right; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
   @media (max-width: 560px) { .progress-row { flex-wrap: wrap; } .progress-label { flex-basis: 100%; } }
 
+  .progress-row.mini { gap: 10px; }
+  .progress-row.mini .progress-label { flex-basis: 150px; }
+  .progress-row.mini .progress-label span:first-child { font-size: 12px; font-weight: 600; }
+  .progress-row.mini .progress-figure { font-size: 11px; }
+  .progress-row.mini .progress-track { height: 7px; }
+  .progress-row.mini .progress-pct { flex-basis: 38px; font-size: 12.5px; }
+
+  details.breakdown-toggle { margin-top: 16px; }
+  details.breakdown-toggle summary {
+    cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-2);
+    list-style: none; display: inline-flex; align-items: center; gap: 5px; user-select: none;
+  }
+  details.breakdown-toggle summary::-webkit-details-marker { display: none; }
+  details.breakdown-toggle summary::before {
+    content: ''; width: 0; height: 0; border-left: 4px solid currentColor; border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent; transition: transform 0.12s;
+  }
+  details.breakdown-toggle[open] summary::before { transform: rotate(90deg); }
+
   footer.notes { font-size: 12px; color: var(--muted); line-height: 1.6; padding-top: 4px; }
   footer.notes a { color: inherit; }
 
@@ -260,6 +279,10 @@
           <div class="progress-pct">70%</div>
         </div>
       </div>
+      <details class="breakdown-toggle">
+        <summary>Leads by channel</summary>
+        <div class="progress-rows" id="weekLeadsByChannel" style="margin-top:14px"></div>
+      </details>
     </div>
 
     <div class="card">
@@ -568,15 +591,30 @@
     table.innerHTML = head + row;
   }
 
-  function progressBarRow(label, actual, plan, formatFn, color) {
+  function progressBarRow(label, actual, plan, formatFn, color, extraClass) {
     var pct = plan > 0 ? Math.round((actual / plan) * 100) : null;
     var pctLabel = pct === null ? '–' : pct + '%';
     var width = pct === null ? 0 : Math.min(pct, 100);
-    return '<div class="progress-row">' +
+    return '<div class="progress-row' + (extraClass ? ' ' + extraClass : '') + '">' +
       '<div class="progress-label"><span>' + label + '</span><span class="progress-figure">' + formatFn(actual) + ' of ' + formatFn(plan) + ' planned</span></div>' +
       '<div class="progress-track"><div class="progress-fill" style="width:' + width + '%; background:' + color + '"></div></div>' +
       '<div class="progress-pct">' + pctLabel + '</div>' +
       '</div>';
+  }
+
+  function renderWeekLeadsByChannel() {
+    var container = document.getElementById('weekLeadsByChannel');
+    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    var googleColor = resolveVar('--s-google'), metaColor = resolveVar('--s-meta'), tiktokColor = resolveVar('--s-tiktok'), redditColor = resolveVar('--s-reddit');
+    var paidColors = { google: googleColor, meta: metaColor, tiktok: tiktokColor, reddit: redditColor };
+    var otherColor = resolveVar('--ink-2');
+    var html = paidChannels.map(function (ch) {
+      return progressBarRow(ch.name, ch.leadsSoFar || 0, ch.data[actualCount], leadsFmt, paidColors[ch.key], 'mini');
+    }).join('');
+    html += otherChannels.map(function (ch) {
+      return progressBarRow(ch.name, ch.leadsSoFar || 0, ch.data[actualCount], leadsFmt, otherColor, 'mini');
+    }).join('');
+    container.innerHTML = html;
   }
 
   function renderChannelProgress(ch) {
@@ -602,6 +640,7 @@
 
   drawCumChart();
   drawLeadsChart();
+  renderWeekLeadsByChannel();
   fillChannelTable();
   selectChannel(0);
   window.addEventListener('resize', function () { drawCumChart(); drawLeadsChart(); });
