@@ -281,6 +281,7 @@
       <div class="table-scroll">
         <table class="detail-table" id="detailTable"></table>
       </div>
+      <div class="progress-rows" id="channelProgress" style="margin-top:18px"></div>
     </div>
 
   </div>
@@ -293,19 +294,20 @@
   var bookings = [86076,150639,55382,66048,80975,52919,42362,42020,61333,144549,174644,198945,190940,128257];
   var totalLeads = [698,1888,1777,971,997,837,442,597,1107,3106,3971,4353,4178,2806];
 
+  // "So far" figures cover Aug 21-26 (the current week, still in progress; Aug 27 not closed yet)
   var paidChannels = [
-    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,241,723,869,902,893,568], status: "critical", statusLabel: "Collapsed" },
-    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,490,1408,1811,1944,1752,1168], status: "warning", statusLabel: "Needs to double" },
-    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,18,54,108,146,204,159], status: "warning", statusLabel: "Just launched" },
-    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,0,0,0,8,28,39], status: "warning", statusLabel: "Not live yet" }
+    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,241,723,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 162, spendSoFar: 7546.97, spendPlan: 9523 },
+    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,490,1408,1811,1944,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 172, spendSoFar: 11538.98, spendPlan: 21509 },
+    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,18,54,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 17, spendSoFar: 3095.96, spendPlan: 711 },
+    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,0,0,0,8,28,39], status: "warning", statusLabel: "Not live yet", leadsSoFar: 0, spendSoFar: 0, spendPlan: 0 }
   ];
   var otherChannels = [
-    { name: "Social Media (owned)", data: [21,33,22,27,41,38,25,33,50,99,129,154,170,119], status: "warning", statusLabel: "Needs to scale" },
-    { name: "GPs", data: [5,16,14,7,7,4,0,1,16,26,49,73,80,56], status: "critical", statusLabel: "Stalled" },
-    { name: "Emails", data: [3,4,3,37,14,6,4,1,8,32,52,78,48,32], status: "critical", statusLabel: "Inconsistent" },
-    { name: "PR", data: [24,14,14,12,9,8,7,9,9,14,21,25,25,21], status: "good", statusLabel: "On plan" },
-    { name: "Organic", data: [58,24,34,27,42,38,17,46,36,51,41,63,57,26], status: "good", statusLabel: "Ahead of plan" },
-    { name: "Unknown/Direct", data: [362,458,467,438,457,466,176,206,240,699,892,960,921,619], status: "warning", statusLabel: "Not attributable" }
+    { name: "Social Media (owned)", data: [21,33,22,27,41,38,25,33,50,99,129,154,170,119], status: "warning", statusLabel: "Needs to scale", leadsSoFar: 41 },
+    { name: "GPs", data: [5,16,14,7,7,4,0,1,16,26,49,73,80,56], status: "critical", statusLabel: "Stalled", leadsSoFar: 0 },
+    { name: "Emails", data: [3,4,3,37,14,6,4,1,8,32,52,78,48,32], status: "critical", statusLabel: "Inconsistent", leadsSoFar: 2 },
+    { name: "PR", data: [24,14,14,12,9,8,7,9,9,14,21,25,25,21], status: "good", statusLabel: "On plan", leadsSoFar: 7 },
+    { name: "Organic", data: [58,24,34,27,42,38,17,46,36,51,41,63,57,26], status: "good", statusLabel: "Ahead of plan", leadsSoFar: 17 },
+    { name: "Unknown/Direct", data: [362,458,467,438,457,466,176,206,240,699,892,960,921,619], status: "warning", statusLabel: "Not attributable", leadsSoFar: 143 }
   ];
 
   var cum = [];
@@ -505,7 +507,11 @@
     return out;
   }
 
-  var clickable = []; // flat list of { name, data, color } in row order, for click lookup
+  function sumField(list, field) {
+    return list.reduce(function (acc, ch) { return acc + (ch[field] || 0); }, 0);
+  }
+
+  var clickable = []; // flat list of { name, data, color, leadsSoFar, isPaid, spendSoFar, spendPlan } in row order
 
   function fillChannelTable() {
     var tbody = document.querySelector('#channelTable tbody');
@@ -515,12 +521,19 @@
     var inkColor = resolveVar('--ink');
 
     clickable = [];
-    paidChannels.forEach(function (ch) { clickable.push({ name: ch.name, data: ch.data, color: paidColors[ch.key] }); });
-    otherChannels.forEach(function (ch) { clickable.push({ name: ch.name, data: ch.data, color: otherColor }); });
+    paidChannels.forEach(function (ch) {
+      clickable.push({ name: ch.name, data: ch.data, color: paidColors[ch.key], leadsSoFar: ch.leadsSoFar, isPaid: true, spendSoFar: ch.spendSoFar, spendPlan: ch.spendPlan });
+    });
+    otherChannels.forEach(function (ch) {
+      clickable.push({ name: ch.name, data: ch.data, color: otherColor, leadsSoFar: ch.leadsSoFar, isPaid: false });
+    });
     var paidTotalIdx = clickable.length;
-    clickable.push({ name: 'Paid (total)', data: sumArrays(paidChannels), color: inkColor });
+    clickable.push({
+      name: 'Paid (total)', data: sumArrays(paidChannels), color: inkColor, isPaid: true,
+      leadsSoFar: sumField(paidChannels, 'leadsSoFar'), spendSoFar: sumField(paidChannels, 'spendSoFar'), spendPlan: sumField(paidChannels, 'spendPlan')
+    });
     var organicTotalIdx = clickable.length;
-    clickable.push({ name: 'Organic (total)', data: sumArrays(otherChannels), color: otherColor });
+    clickable.push({ name: 'Organic (total)', data: sumArrays(otherChannels), color: otherColor, isPaid: false, leadsSoFar: sumField(otherChannels, 'leadsSoFar') });
 
     var pi = 0;
     var html = '<tr class="group-row" data-idx="' + paidTotalIdx + '"><td colspan="6">Paid channels</td></tr>';
@@ -555,12 +568,36 @@
     table.innerHTML = head + row;
   }
 
+  function progressBarRow(label, actual, plan, formatFn, color) {
+    var pct = plan > 0 ? Math.round((actual / plan) * 100) : null;
+    var pctLabel = pct === null ? '–' : pct + '%';
+    var width = pct === null ? 0 : Math.min(pct, 100);
+    return '<div class="progress-row">' +
+      '<div class="progress-label"><span>' + label + '</span><span class="progress-figure">' + formatFn(actual) + ' of ' + formatFn(plan) + ' planned</span></div>' +
+      '<div class="progress-track"><div class="progress-fill" style="width:' + width + '%; background:' + color + '"></div></div>' +
+      '<div class="progress-pct">' + pctLabel + '</div>' +
+      '</div>';
+  }
+
+  function renderChannelProgress(ch) {
+    var container = document.getElementById('channelProgress');
+    var weekPlanLeads = ch.data[actualCount];
+    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    var html = progressBarRow('Leads so far this week', ch.leadsSoFar || 0, weekPlanLeads, leadsFmt, ch.color);
+    if (ch.isPaid) {
+      var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
+      html += progressBarRow('Spend so far this week', ch.spendSoFar || 0, ch.spendPlan || 0, eurFmt, resolveVar('--s-google'));
+    }
+    container.innerHTML = html;
+  }
+
   function selectChannel(idx) {
     document.querySelectorAll('#channelTable tbody tr[data-idx]').forEach(function (row) {
       row.classList.toggle('selected', parseInt(row.getAttribute('data-idx'), 10) === idx);
     });
     var ch = clickable[idx];
     renderDetail(ch.name, ch.data, ch.color);
+    renderChannelProgress(ch);
   }
 
   drawCumChart();
