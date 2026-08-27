@@ -268,18 +268,7 @@
     <div class="card">
       <p class="section-title">This week so far (Aug 21–27)</p>
       <p class="section-note">Progress against this week's plan, not a daily target.</p>
-      <div class="progress-rows">
-        <div class="progress-row">
-          <div class="progress-label"><span>Leads</span><span class="progress-figure">630 of 1,107 planned</span></div>
-          <div class="progress-track"><div class="progress-fill" style="width:57%; background:var(--ink-2)"></div></div>
-          <div class="progress-pct">57%</div>
-        </div>
-        <div class="progress-row">
-          <div class="progress-label"><span>Spend</span><span class="progress-figure">€27,153 of €31,743 planned</span></div>
-          <div class="progress-track"><div class="progress-fill" style="width:86%; background:var(--s-google)"></div></div>
-          <div class="progress-pct">86%</div>
-        </div>
-      </div>
+      <div class="progress-rows" id="weekSummary"></div>
       <details class="breakdown-toggle">
         <summary>Leads by channel</summary>
         <div class="progress-rows" id="weekLeadsByChannel" style="margin-top:14px"></div>
@@ -369,6 +358,37 @@
   var updatedPlanBookings = computeUpdatedPlan();
   var updatedCum = [];
   updatedPlanBookings.reduce(function (acc, v, i) { updatedCum[i] = acc + v; return updatedCum[i]; }, 0);
+
+  // Same re-prorate math as bookings, but applied straight to the weekly lead targets (total and
+  // per-channel) rather than kept as a separate comparison line: for leads, "what we need this
+  // coming week" is an operational number people act on day to day, so the target itself should
+  // just move -- there's no separate "keep showing the original ambition" audience like there is
+  // for the top-line bookings KPI. `ch.originalPlanData`/`originalPlanTotalLeads` keep the frozen
+  // reference around in case that ever needs to change.
+  function reprorateLevels(series, originalPlan, freezeAt) {
+    var updated = series.slice();
+    var newlyClosed = [];
+    for (var i = freezeAt; i < actualCount; i++) newlyClosed.push(i);
+    var shortfall = newlyClosed.reduce(function (acc, i) {
+      return acc + (originalPlan[i - freezeAt] - series[i]);
+    }, 0);
+    var remainingTotal = 0;
+    for (var i = actualCount; i < series.length; i++) remainingTotal += originalPlan[i - freezeAt];
+    for (var i = actualCount; i < series.length; i++) {
+      var orig = originalPlan[i - freezeAt];
+      var share = remainingTotal > 0 ? orig / remainingTotal : 0;
+      updated[i] = orig + shortfall * share;
+    }
+    return updated;
+  }
+
+  var originalPlanTotalLeads = totalLeads.slice(originalActualCount);
+  totalLeads = reprorateLevels(totalLeads, originalPlanTotalLeads, originalActualCount);
+
+  paidChannels.concat(otherChannels).forEach(function (ch) {
+    ch.originalPlanData = ch.data.slice(originalActualCount);
+    ch.data = reprorateLevels(ch.data, ch.originalPlanData, originalActualCount);
+  });
 
   function resolveVar(name) {
     var el = document.querySelector('.viz-root');
@@ -637,6 +657,18 @@
       '</div>';
   }
 
+  function renderWeekSummary() {
+    var container = document.getElementById('weekSummary');
+    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
+    var leadsSoFar = sumField(paidChannels, 'leadsSoFar') + sumField(otherChannels, 'leadsSoFar');
+    var spendSoFar = sumField(paidChannels, 'spendSoFar');
+    var spendPlan = sumField(paidChannels, 'spendPlan');
+    var html = progressBarRow('Leads', leadsSoFar, totalLeads[actualCount], leadsFmt, resolveVar('--ink-2'));
+    html += progressBarRow('Spend', spendSoFar, spendPlan, eurFmt, resolveVar('--s-google'));
+    container.innerHTML = html;
+  }
+
   function renderWeekLeadsByChannel() {
     var container = document.getElementById('weekLeadsByChannel');
     var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
@@ -675,6 +707,7 @@
 
   drawCumChart();
   drawLeadsChart();
+  renderWeekSummary();
   renderWeekLeadsByChannel();
   fillChannelTable();
   selectChannel(0);
