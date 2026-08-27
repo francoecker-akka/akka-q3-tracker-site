@@ -239,14 +239,15 @@
 
     <div class="card">
       <p class="section-title">Cumulative bookings against target</p>
-      <p class="section-note">The solid line tracks actuals. Dotted continues the plan through September. The red dash marks the pace needed to hit €1,475,089.</p>
+      <p class="section-note" id="cumChartNote">The solid line tracks actuals. Light dotted continues the original plan. Bold dotted is that plan re-prorated across the remaining weeks whenever a week closes above or below its number. The red dash marks the pace needed to hit €1,475,089.</p>
       <div class="chart-holder">
         <svg id="cumChart" viewBox="0 0 860 300" style="width:100%; height:auto; display:block;"></svg>
         <div class="tooltip" id="cumTooltip"></div>
       </div>
       <div class="legend">
         <div class="item"><span class="swatch line" style="background:var(--s-google)"></span>Actual bookings</div>
-        <div class="item"><span class="swatch dash" style="color:var(--s-google)"></span>Planned bookings</div>
+        <div class="item"><span class="swatch dash" style="color:var(--s-google)"></span>Original plan</div>
+        <div class="item"><span class="swatch dash" style="color:var(--ink)"></span>Updated plan (re-prorated)</div>
         <div class="item"><span class="swatch dash" style="color:var(--pace)"></span>Pace needed</div>
       </div>
     </div>
@@ -340,6 +341,35 @@
   var totalDays = 92;
   var pace = weekEndDay.map(function (d) { return target * d / totalDays; });
 
+  // Frozen at the moment the Sept forecast was first built (26 Aug 2026). Never edit this array on
+  // refresh -- it's the original-plan reference line. When a week that was originally "plan" closes
+  // with a real number, update `bookings[i]` for that index and bump `actualCount`; the re-prorated
+  // line below picks up the difference automatically.
+  var originalActualCount = 8;
+  var originalPlanBookings = [61333, 144549, 174644, 198945, 190940, 128257]; // weeks 8-13
+
+  function computeUpdatedPlan() {
+    // Weeks that were "plan" under the original forecast but have since closed as real actuals.
+    var newlyClosed = [];
+    for (var i = originalActualCount; i < actualCount; i++) newlyClosed.push(i);
+    var shortfall = newlyClosed.reduce(function (acc, i) {
+      return acc + (originalPlanBookings[i - originalActualCount] - bookings[i]);
+    }, 0); // positive = behind the original plan, negative = ahead
+    var remainingOriginalTotal = 0;
+    for (var i = actualCount; i < weeks.length; i++) remainingOriginalTotal += originalPlanBookings[i - originalActualCount];
+    var updated = bookings.slice();
+    for (var i = actualCount; i < weeks.length; i++) {
+      var orig = originalPlanBookings[i - originalActualCount];
+      var share = remainingOriginalTotal > 0 ? orig / remainingOriginalTotal : 0;
+      updated[i] = orig + shortfall * share;
+    }
+    return updated;
+  }
+
+  var updatedPlanBookings = computeUpdatedPlan();
+  var updatedCum = [];
+  updatedPlanBookings.reduce(function (acc, v, i) { updatedCum[i] = acc + v; return updatedCum[i]; }, 0);
+
   function resolveVar(name) {
     var el = document.querySelector('.viz-root');
     return getComputedStyle(el).getPropertyValue(name).trim();
@@ -349,13 +379,13 @@
     var svg = document.getElementById('cumChart');
     var W = 860, H = 300, padL = 56, padR = 16, padT = 16, padB = 30;
     var plotW = W - padL - padR, plotH = H - padT - padB;
-    var maxY = Math.max(target, cum[cum.length - 1]) * 1.05;
+    var maxY = Math.max(target, cum[cum.length - 1], updatedCum[updatedCum.length - 1]) * 1.05;
     var n = weeks.length;
     var xStep = plotW / (n - 1);
     function x(i) { return padL + i * xStep; }
     function y(v) { return padT + plotH - (v / maxY) * plotH; }
 
-    var gColor = resolveVar('--s-google'), paceColor = resolveVar('--pace');
+    var gColor = resolveVar('--s-google'), paceColor = resolveVar('--pace'), inkColor = resolveVar('--ink');
 
     var svgns = "http://www.w3.org/2000/svg";
     function el(tag, attrs) {
@@ -394,6 +424,10 @@
     var plannedPath = 'M ' + plannedPts.map(function (v, i) { return x(i + actualCount - 1) + ' ' + y(v); }).join(' L ');
     svg.appendChild(el('path', { d: plannedPath, fill: 'none', stroke: gColor, 'stroke-width': 2.5, 'stroke-dasharray': '2,5', 'stroke-linecap': 'round' }));
 
+    var updatedPts = updatedCum.slice(actualCount - 1);
+    var updatedPath = 'M ' + updatedPts.map(function (v, i) { return x(i + actualCount - 1) + ' ' + y(v); }).join(' L ');
+    svg.appendChild(el('path', { d: updatedPath, fill: 'none', stroke: inkColor, 'stroke-width': 2, 'stroke-dasharray': '6,3', 'stroke-linecap': 'round', opacity: 0.75 }));
+
     var tooltip = document.getElementById('cumTooltip');
     cum.forEach(function (v, i) {
       var isActual = i < actualCount;
@@ -404,7 +438,8 @@
         var holder = svg.parentElement.getBoundingClientRect();
         var px = rect.left - holder.left + (x(i) / W) * rect.width;
         var py = rect.top - holder.top + (y(v) / H) * rect.height;
-        tooltip.innerHTML = '<b>' + weeks[i] + '</b><br>' + (isActual ? 'Actual cumulative: ' : 'Planned cumulative: ') + '<b>€' + v.toLocaleString('en-US') + '</b><br>Pace needed: €' + Math.round(pace[i]).toLocaleString('en-US');
+        var updatedLine = (!isActual && Math.round(updatedCum[i]) !== Math.round(v)) ? '<br>Updated plan: <b>€' + Math.round(updatedCum[i]).toLocaleString('en-US') + '</b>' : '';
+        tooltip.innerHTML = '<b>' + weeks[i] + '</b><br>' + (isActual ? 'Actual cumulative: ' : 'Original plan: ') + '<b>€' + v.toLocaleString('en-US') + '</b>' + updatedLine + '<br>Pace needed: €' + Math.round(pace[i]).toLocaleString('en-US');
         tooltip.style.left = px + 'px';
         tooltip.style.top = (py - 8) + 'px';
         tooltip.classList.add('show');
