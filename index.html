@@ -209,14 +209,14 @@
       <div class="tile">
         <div class="label">Bookings QTD</div>
         <div class="value">€576,421</div>
-        <div class="sub">39% of the €1,475,089 Q3 target</div>
+        <div class="sub">39% of the €1,476,416 Q3 target</div>
       </div>
       <div class="tile">
         <div class="label">
           Pace vs. target
           <span class="info-icon" tabindex="0">
             <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.3"/><path d="M8 7.2v4M8 5.1v.01" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-            <span class="info-tooltip">Actual bookings so far, divided by the pace we'd need if the €1,475,089 Q3 target were spread evenly across the quarter's 92 days. 70% means we're 30% behind that even pace, not 30% behind the full Q3 target.</span>
+            <span class="info-tooltip">Actual bookings so far, divided by the pace we'd need if the €1,476,416 Q3 target were spread evenly across the quarter's 92 days. 70% means we're 30% behind that even pace, not 30% behind the full Q3 target.</span>
           </span>
         </div>
         <div class="value" style="color:var(--critical)">70%</div>
@@ -224,7 +224,7 @@
       </div>
       <div class="tile">
         <div class="label">Gap to close</div>
-        <div class="value">€898,668</div>
+        <div class="value">€899,995</div>
         <div class="sub">across the 6 weeks left in Q3</div>
       </div>
       <div class="tile">
@@ -233,13 +233,13 @@
           <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v6M8 11.2v.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           Behind pace
         </div>
-        <div class="sub" style="margin-top:6px">The next 6 weeks need €149,800 a week, roughly double the €72,000 average so far.</div>
+        <div class="sub" style="margin-top:6px">The next 6 weeks need €150,000 a week, roughly double the €72,000 average so far.</div>
       </div>
     </div>
 
     <div class="card">
       <p class="section-title">Cumulative bookings against target</p>
-      <p class="section-note" id="cumChartNote">The solid line tracks actuals. Light dotted continues the original plan. Bold dotted is that plan re-prorated across the remaining weeks whenever a week closes above or below its number. The red dash marks the pace needed to hit €1,475,089.</p>
+      <p class="section-note" id="cumChartNote">The solid line tracks actuals. Light dotted continues the original plan. Bold dotted is that plan re-prorated across the remaining weeks whenever a week closes above or below its number. The red dash marks the pace needed to hit €1,476,416.</p>
       <div class="chart-holder">
         <svg id="cumChart" viewBox="0 0 860 300" style="width:100%; height:auto; display:block;"></svg>
         <div class="tooltip" id="cumTooltip"></div>
@@ -304,15 +304,15 @@
 (function () {
   var weeks = ["Jul 1-3","Jul 3-9","Jul 10-16","Jul 17-23","Jul 24-30","Jul 31-Aug 6","Aug 7-13","Aug 14-20","Aug 21-27","Aug 28-Sep 3","Sep 4-10","Sep 11-17","Sep 18-24","Sep 25-30"];
   var actualCount = 8;
-  var bookings = [86076,150639,55382,66048,80975,52919,42362,42020,61333,144549,174644,198945,190940,128257];
-  var totalLeads = [698,1888,1777,971,997,837,442,597,1107,3106,3971,4353,4178,2806];
+  var bookings = [86076,150639,55382,66048,80975,52919,42362,42020,61333,144549,174644,200212,191845,127412];
+  var totalLeads = [698,1888,1777,971,997,837,442,597,1107,3106,3971,4381,4198,2788];
 
   // "So far" figures cover Aug 21-27 through today's data (Aug 27 is still an open day, not fully closed)
   var paidChannels = [
     { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,241,723,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 206, spendSoFar: 9373.81, spendPlan: 9523 },
-    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,490,1408,1811,1944,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 225, spendSoFar: 14392.84, spendPlan: 21509 },
+    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,489,1400,1783,1934,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 225, spendSoFar: 14392.84, spendPlan: 20904 },
     { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,18,54,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 21, spendSoFar: 3386.37, spendPlan: 711 },
-    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,0,0,0,8,28,39], status: "warning", statusLabel: "Not live yet", leadsSoFar: 1, spendSoFar: 0, spendPlan: 0 }
+    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,1,8,28,39,43,25], status: "good", statusLabel: "Launched early, on plan", leadsSoFar: 1, spendSoFar: 0, spendPlan: 605 }
   ];
   var otherChannels = [
     { name: "Social Media (owned)", data: [21,33,22,27,41,38,25,33,50,99,129,154,170,119], status: "warning", statusLabel: "Needs to scale", leadsSoFar: 51 },
@@ -320,22 +320,22 @@
     { name: "Emails", data: [3,4,3,37,14,6,4,1,8,32,52,78,48,32], status: "critical", statusLabel: "Inconsistent", leadsSoFar: 63 },
     { name: "PR", data: [24,14,14,12,9,8,7,9,9,14,21,25,25,21], status: "good", statusLabel: "On plan", leadsSoFar: 9 },
     { name: "Organic", data: [58,24,34,27,42,38,17,46,36,51,41,63,57,26], status: "good", statusLabel: "Ahead of plan", leadsSoFar: 21 },
-    { name: "Unknown/Direct", data: [362,458,467,438,457,466,176,206,240,699,892,960,921,619], status: "warning", statusLabel: "Not attributable", leadsSoFar: 182 }
+    { name: "Unknown/Direct", data: [362,458,467,438,457,466,176,206,240,699,892,967,925,614], status: "warning", statusLabel: "Not attributable", leadsSoFar: 182 }
   ];
 
   var cum = [];
   bookings.reduce(function (acc, v, i) { cum[i] = acc + v; return cum[i]; }, 0);
-  var target = 1475089;
+  var target = 1476416;
   var weekEndDay = [3,9,16,23,30,37,44,51,58,65,72,79,86,92];
   var totalDays = 92;
   var pace = weekEndDay.map(function (d) { return target * d / totalDays; });
 
-  // Frozen at the moment the Sept forecast was first built (26 Aug 2026). Never edit this array on
-  // refresh -- it's the original-plan reference line. When a week that was originally "plan" closes
-  // with a real number, update `bookings[i]` for that index and bump `actualCount`; the re-prorated
-  // line below picks up the difference automatically.
+  // Frozen at the moment the Sept forecast was first built (26 Aug 2026, revised 27 Aug 2026 to bring
+  // Reddit forward). Never edit this array on refresh -- it's the original-plan reference line. When a
+  // week that was originally "plan" closes with a real number, update `bookings[i]` for that index and
+  // bump `actualCount`; the re-prorated line below picks up the difference automatically.
   var originalActualCount = 8;
-  var originalPlanBookings = [61333, 144549, 174644, 198945, 190940, 128257]; // weeks 8-13
+  var originalPlanBookings = [61333, 144549, 174644, 200212, 191845, 127412]; // weeks 8-13
 
   function computeUpdatedPlan() {
     // Weeks that were "plan" under the original forecast but have since closed as real actuals.
