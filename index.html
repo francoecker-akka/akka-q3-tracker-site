@@ -119,15 +119,6 @@
   .section-title { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
   .section-note { font-size: 12.5px; color: var(--ink-2); margin: 0 0 14px; }
 
-  .week-select-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-  .week-select-row label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
-  .week-select-row select {
-    font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
-    background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
-    padding: 6px 10px; cursor: pointer;
-  }
-  .week-select-row select:focus { outline: 2px solid var(--s-google); outline-offset: 1px; }
-
   .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 10px; }
   .legend .item { display: flex; align-items: center; gap: 6px; }
   .legend .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
@@ -154,6 +145,7 @@
   table.ch-table th.num { text-align: center; }
   table.ch-table td { padding: 9px 8px 9px 0; border-top: 1px solid var(--grid); vertical-align: middle; }
   table.ch-table td.num { font-variant-numeric: tabular-nums; text-align: center; }
+  table.ch-table td.is-plan { color: var(--muted); font-weight: 600; }
   table.ch-table tr.group-row td { border-top: none; padding: 16px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
   table.ch-table tr.group-row:first-child td { padding-top: 0; }
   .ch-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
@@ -275,6 +267,16 @@
     </div>
 
     <div class="card">
+      <p class="section-title">Last week's performance (Aug 21–27)</p>
+      <p class="section-note">The week that just closed: actual leads and spend against the plan it had.</p>
+      <div class="progress-rows" id="lastWeekSummary"></div>
+      <details class="breakdown-toggle">
+        <summary>Leads by channel</summary>
+        <div class="progress-rows" id="lastWeekLeadsByChannel" style="margin-top:14px"></div>
+      </details>
+    </div>
+
+    <div class="card">
       <p class="section-title">This week so far (Aug 28–Sep 3)</p>
       <p class="section-note">Progress against this week's plan, not a daily target.</p>
       <div class="progress-rows" id="weekSummary"></div>
@@ -286,15 +288,11 @@
 
     <div class="card">
       <p class="section-title">Leads by channel</p>
-      <p class="section-note">Actual leads (BigQuery) vs. the plan (Google Sheet) for the week you pick below -- for a week still ahead, only the plan exists yet. Click a channel for the full weekly breakdown.</p>
-      <div class="week-select-row">
-        <label for="weekSelect">Week</label>
-        <select id="weekSelect"></select>
-      </div>
+      <p class="section-note">Full 14-week trend, the last confirmed week, and what the plan (not yet real) asks for next week. Click a channel for the full weekly breakdown.</p>
       <div class="table-scroll">
         <table class="ch-table" id="channelTable">
           <thead>
-            <tr><th>Channel</th><th class="num">Actual</th><th class="num">Plan</th><th class="num">% of plan</th><th>Trend</th><th>Status</th></tr>
+            <tr><th>Channel</th><th class="num">Last actual week</th><th class="num">Next week (plan)</th><th class="num">Change</th><th>Trend</th><th>Status</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -303,7 +301,7 @@
 
     <div class="card">
       <p class="section-title">Weekly breakdown: <span id="detailChannelName">Google</span></p>
-      <p class="section-note">Dark numbers are results. Light gray numbers are the plan, not yet real. The selected week is highlighted.</p>
+      <p class="section-note">Dark numbers are results. Light gray numbers are the plan, not yet real. The current week is highlighted.</p>
       <div class="table-scroll">
         <table class="detail-table" id="detailTable"></table>
       </div>
@@ -324,11 +322,14 @@
   // `plan` is the last known Google Sheet forecast for weeks 8-13, hand-set and frozen -- never
   // derive it from `data`, since `data` gets overwritten with the real (BigQuery) number the moment
   // a week closes. Update `plan` by hand only when the sheet's own forecast changes.
+  // lastWeekSpendActual/lastWeekSpendPlan: the closed week's (Aug 21-27) final spend, captured before
+  // spendSoFar/spendPlan got reset to track the new live week -- there's no 14-week spend series like
+  // there is for leads, so this closed-week snapshot has to be kept by hand, separately.
   var paidChannels = [
-    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,228,723,869,902,893,568], plan: [241,723,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 14, spendSoFar: 605.94, spendPlan: 19046 },
-    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,252,1400,1783,1934,1752,1168], plan: [489,1400,1783,1934,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 4, spendSoFar: 618.92, spendPlan: 38942 },
-    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,26,54,108,146,204,159], plan: [18,54,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 0, spendSoFar: 95.19, spendPlan: 3641 },
-    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,1,8,28,39,43,25], plan: [1,8,28,39,43,25], status: "good", statusLabel: "Launched early, on plan", leadsSoFar: 0, spendSoFar: 14.18, spendPlan: 1857 }
+    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,228,723,869,902,893,568], plan: [241,723,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 14, spendSoFar: 605.94, spendPlan: 19046, lastWeekSpendActual: 10172.41, lastWeekSpendPlan: 9523 },
+    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,252,1400,1783,1934,1752,1168], plan: [489,1400,1783,1934,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 4, spendSoFar: 618.92, spendPlan: 38942, lastWeekSpendActual: 15428.35, lastWeekSpendPlan: 17904 },
+    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,26,54,108,146,204,159], plan: [18,54,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 0, spendSoFar: 95.19, spendPlan: 3641, lastWeekSpendActual: 3616.32, lastWeekSpendPlan: 3711 },
+    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,1,8,28,39,43,25], plan: [1,8,28,39,43,25], status: "good", statusLabel: "Launched early, on plan", leadsSoFar: 0, spendSoFar: 14.18, spendPlan: 1857, lastWeekSpendActual: 270.40, lastWeekSpendPlan: 605 }
   ];
   var otherChannels = [
     { name: "Social Media (owned)", data: [21,33,22,27,41,38,25,33,61,99,129,154,170,119], plan: [50,99,129,154,170,119], status: "warning", statusLabel: "Needs to scale", leadsSoFar: 2 },
@@ -379,8 +380,7 @@
   // per-channel) rather than kept as a separate comparison line: for leads, "what we need this
   // coming week" is an operational number people act on day to day, so the target itself should
   // just move -- there's no separate "keep showing the original ambition" audience like there is
-  // for the top-line bookings KPI. `ch.originalPlanData`/`originalPlanTotalLeads` keep the frozen
-  // reference around in case that ever needs to change.
+  // for the top-line bookings KPI.
   function reprorateLevels(series, originalPlan, freezeAt) {
     var updated = series.slice();
     var newlyClosed = [];
@@ -404,7 +404,6 @@
   totalLeads = reprorateLevels(totalLeads, originalPlanTotalLeads, originalActualCount);
 
   paidChannels.concat(otherChannels).forEach(function (ch) {
-    ch.originalPlanData = ch.plan;
     ch.data = reprorateLevels(ch.data, ch.plan, originalActualCount);
   });
 
@@ -538,7 +537,7 @@
         var holder = svg.parentElement.getBoundingClientRect();
         var px = svgRect.left - holder.left + ((bx + bw2 / 2) / W) * svgRect.width;
         var py = svgRect.top - holder.top + (y(v) / H) * svgRect.height;
-        tooltip.innerHTML = '<b>' + weekLabel + '</b><br>' + typeLabel + ': <b>' + v.toLocaleString('en-US') + '</b>';
+        tooltip.innerHTML = '<b>' + weekLabel + '</b><br>' + typeLabel + ': <b>' + Math.round(v).toLocaleString('en-US') + '</b>';
         tooltip.style.left = px + 'px';
         tooltip.style.top = (py - 8) + 'px';
         tooltip.classList.add('show');
@@ -556,7 +555,7 @@
         var holder = svg.parentElement.getBoundingClientRect();
         var px = svgRect.left - holder.left + ((bx + bw2 / 2) / W) * svgRect.width;
         var py2 = svgRect.top - holder.top + (py / H) * svgRect.height;
-        tooltip.innerHTML = '<b>' + weekLabel + '</b><br>Original plan: <b>' + planV.toLocaleString('en-US') + '</b>';
+        tooltip.innerHTML = '<b>' + weekLabel + '</b><br>Original plan: <b>' + Math.round(planV).toLocaleString('en-US') + '</b>';
         tooltip.style.left = px + 'px';
         tooltip.style.top = (py2 - 8) + 'px';
         tooltip.classList.add('show');
@@ -614,26 +613,21 @@
   }
 
   var currentWeekIndex = actualCount; // Aug 28-Sep 3: the week under way right now
-  var selectedWeekIndex = currentWeekIndex; // which week the "Leads by channel" table + detail card are showing
-  var selectedChannelIdx = 0; // which channel row is active in the detail card
 
-  function planForChannelWeek(ch, i) {
-    var planIdx = i - originalActualCount;
-    if (ch.originalPlanData && planIdx >= 0 && planIdx < ch.originalPlanData.length) return ch.originalPlanData[planIdx];
-    if (i >= actualCount) return ch.data[i]; // a week that hasn't happened yet: `data` already holds the plan
-    return null; // a closed week from before we tracked a separate plan (weeks 1-8 of July/early August)
+  function pctChangeLabel(last, next) {
+    if (last === 0) return next === 0 ? '–' : 'new';
+    var pct = Math.round(((next - last) / last) * 100);
+    return (pct >= 0 ? '+' : '') + pct + '%';
   }
 
   function channelRow(ch, color, idx) {
-    var isClosed = selectedWeekIndex < actualCount;
-    var actual = isClosed ? ch.data[selectedWeekIndex] : null;
-    var plan = planForChannelWeek(ch, selectedWeekIndex);
-    var pct = (actual !== null && plan) ? Math.round((actual / plan) * 100) : null;
+    var last = Math.round(ch.data[actualCount - 1]);
+    var next = Math.round(ch.data[actualCount]);
     return '<tr data-idx="' + idx + '">' +
       '<td><div class="ch-name"><span class="ch-dot" style="background:' + color + '"></span>' + ch.name + '</div></td>' +
-      '<td class="num">' + (actual === null ? '–' : actual.toLocaleString('en-US')) + '</td>' +
-      '<td class="num">' + (plan === null ? '–' : plan.toLocaleString('en-US')) + '</td>' +
-      '<td class="num" style="color:var(--ink-2)">' + (pct === null ? '–' : pct + '%') + '</td>' +
+      '<td class="num">' + last.toLocaleString('en-US') + '</td>' +
+      '<td class="num is-plan">' + next.toLocaleString('en-US') + '</td>' +
+      '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(last, next) + '</td>' +
       '<td class="spark-cell">' + sparkline(ch.data, color) + '</td>' +
       '<td><span class="chip ' + ch.status + '"><svg viewBox="0 0 16 16" fill="none">' + statusIcon(ch.status) + '</svg>' + ch.statusLabel + '</span></td>' +
       '</tr>';
@@ -645,34 +639,11 @@
     return out;
   }
 
-  function sumOriginalPlanArrays(list) {
-    var out = originalPlanTotalLeads.map(function () { return 0; });
-    list.forEach(function (ch) {
-      if (!ch.originalPlanData) return;
-      ch.originalPlanData.forEach(function (v, i) { out[i] += v; });
-    });
-    return out;
-  }
-
   function sumField(list, field) {
     return list.reduce(function (acc, ch) { return acc + (ch[field] || 0); }, 0);
   }
 
-  var clickable = []; // flat list of { name, data, originalPlanData, color, leadsSoFar, isPaid, spendSoFar, spendPlan } in row order
-
-  function populateWeekSelect() {
-    var sel = document.getElementById('weekSelect');
-    sel.innerHTML = weeks.map(function (w, i) {
-      var tag = i === currentWeekIndex ? ' (current)' : (i >= actualCount ? ' (plan)' : '');
-      return '<option value="' + i + '">' + w + tag + '</option>';
-    }).join('');
-    sel.value = selectedWeekIndex;
-    sel.addEventListener('change', function () {
-      selectedWeekIndex = parseInt(sel.value, 10);
-      fillChannelTable();
-      selectChannel(selectedChannelIdx);
-    });
-  }
+  var clickable = []; // flat list of { name, data, color, leadsSoFar, isPaid, spendSoFar, spendPlan } in row order
 
   function fillChannelTable() {
     var tbody = document.querySelector('#channelTable tbody');
@@ -683,18 +654,18 @@
 
     clickable = [];
     paidChannels.forEach(function (ch) {
-      clickable.push({ name: ch.name, data: ch.data, originalPlanData: ch.originalPlanData, color: paidColors[ch.key], leadsSoFar: ch.leadsSoFar, isPaid: true, spendSoFar: ch.spendSoFar, spendPlan: ch.spendPlan });
+      clickable.push({ name: ch.name, data: ch.data, color: paidColors[ch.key], leadsSoFar: ch.leadsSoFar, isPaid: true, spendSoFar: ch.spendSoFar, spendPlan: ch.spendPlan });
     });
     otherChannels.forEach(function (ch) {
-      clickable.push({ name: ch.name, data: ch.data, originalPlanData: ch.originalPlanData, color: otherColor, leadsSoFar: ch.leadsSoFar, isPaid: false });
+      clickable.push({ name: ch.name, data: ch.data, color: otherColor, leadsSoFar: ch.leadsSoFar, isPaid: false });
     });
     var paidTotalIdx = clickable.length;
     clickable.push({
-      name: 'Paid (total)', data: sumArrays(paidChannels), originalPlanData: sumOriginalPlanArrays(paidChannels), color: inkColor, isPaid: true,
+      name: 'Paid (total)', data: sumArrays(paidChannels), color: inkColor, isPaid: true,
       leadsSoFar: sumField(paidChannels, 'leadsSoFar'), spendSoFar: sumField(paidChannels, 'spendSoFar'), spendPlan: sumField(paidChannels, 'spendPlan')
     });
     var organicTotalIdx = clickable.length;
-    clickable.push({ name: 'Organic (total)', data: sumArrays(otherChannels), originalPlanData: sumOriginalPlanArrays(otherChannels), color: otherColor, isPaid: false, leadsSoFar: sumField(otherChannels, 'leadsSoFar') });
+    clickable.push({ name: 'Organic (total)', data: sumArrays(otherChannels), color: otherColor, isPaid: false, leadsSoFar: sumField(otherChannels, 'leadsSoFar') });
 
     var pi = 0;
     var html = '<tr class="group-row" data-idx="' + paidTotalIdx + '"><td colspan="6">Paid channels</td></tr>';
@@ -716,15 +687,15 @@
     var table = document.getElementById('detailTable');
     var highlight = 'background:color-mix(in srgb, ' + color + ' 30%, transparent); font-weight:800;';
     var head = '<tr>' + weeks.map(function (w, i) {
-      var style = i === selectedWeekIndex ? highlight : '';
+      var style = i === currentWeekIndex ? highlight : '';
       return '<th style="' + style + '">' + w + '</th>';
     }).join('') + '</tr>';
     var row = '<tr>' + data.map(function (v, i) {
       var isPlan = i >= actualCount;
-      var isSelected = i === selectedWeekIndex;
-      var cls = isPlan && !isSelected ? 'is-plan' : '';
-      var style = isSelected ? highlight : '';
-      return '<td class="' + cls + '" style="' + style + '">' + v.toLocaleString('en-US') + '</td>';
+      var isCurrent = i === currentWeekIndex;
+      var cls = isPlan && !isCurrent ? 'is-plan' : '';
+      var style = isCurrent ? highlight : '';
+      return '<td class="' + cls + '" style="' + style + '">' + Math.round(v).toLocaleString('en-US') + '</td>';
     }).join('') + '</tr>';
     table.innerHTML = head + row;
   }
@@ -767,38 +738,50 @@
     container.innerHTML = html;
   }
 
-  function planOnlyRow(label, value, formatFn) {
-    return '<div class="progress-row"><div class="progress-label"><span>' + label + '</span><span class="progress-figure">' + formatFn(value) + '</span></div></div>';
+  var lastWeekIndex = actualCount - 1; // Aug 21-27: the week that just closed
+  var lastWeekPlanIndex = lastWeekIndex - originalActualCount; // its slot in each channel's `plan` array
+
+  function renderLastWeekSummary() {
+    var container = document.getElementById('lastWeekSummary');
+    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
+    var leadsActual = totalLeads[lastWeekIndex];
+    var leadsPlan = originalPlanTotalLeads[lastWeekPlanIndex];
+    var spendActual = sumField(paidChannels, 'lastWeekSpendActual');
+    var spendPlan = sumField(paidChannels, 'lastWeekSpendPlan');
+    var html = progressBarRow('Leads', leadsActual, leadsPlan, leadsFmt, resolveVar('--ink-2'));
+    html += progressBarRow('Spend', spendActual, spendPlan, eurFmt, resolveVar('--s-google'));
+    container.innerHTML = html;
+  }
+
+  function renderLastWeekLeadsByChannel() {
+    var container = document.getElementById('lastWeekLeadsByChannel');
+    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    var googleColor = resolveVar('--s-google'), metaColor = resolveVar('--s-meta'), tiktokColor = resolveVar('--s-tiktok'), redditColor = resolveVar('--s-reddit');
+    var paidColors = { google: googleColor, meta: metaColor, tiktok: tiktokColor, reddit: redditColor };
+    var otherColor = resolveVar('--ink-2');
+    var html = paidChannels.map(function (ch) {
+      return progressBarRow(ch.name, ch.data[lastWeekIndex], ch.plan[lastWeekPlanIndex], leadsFmt, paidColors[ch.key], 'mini');
+    }).join('');
+    html += otherChannels.map(function (ch) {
+      return progressBarRow(ch.name, ch.data[lastWeekIndex], ch.plan[lastWeekPlanIndex], leadsFmt, otherColor, 'mini');
+    }).join('');
+    container.innerHTML = html;
   }
 
   function renderChannelProgress(ch) {
     var container = document.getElementById('channelProgress');
+    var weekPlanLeads = ch.data[actualCount];
     var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
-    var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
-    var html;
-    if (selectedWeekIndex === currentWeekIndex) {
-      // The live, still-open week: compare running "so far" totals against its plan.
-      html = progressBarRow('Leads so far this week', ch.leadsSoFar || 0, ch.data[actualCount], leadsFmt, ch.color);
-      if (ch.isPaid) {
-        html += progressBarRow('Spend so far this week', ch.spendSoFar || 0, ch.spendPlan || 0, eurFmt, resolveVar('--s-google'));
-      }
-    } else if (selectedWeekIndex < actualCount) {
-      // A closed week: show the real result against whatever plan we had on record for it.
-      var actual = ch.data[selectedWeekIndex];
-      var planIdx = selectedWeekIndex - originalActualCount;
-      var plan = (ch.originalPlanData && planIdx >= 0 && planIdx < ch.originalPlanData.length) ? ch.originalPlanData[planIdx] : null;
-      html = plan !== null
-        ? progressBarRow('Leads that week', actual, plan, leadsFmt, ch.color)
-        : planOnlyRow('Leads that week', actual, leadsFmt);
-    } else {
-      // A future week beyond the one in progress: nothing to compare yet, just the plan.
-      html = planOnlyRow('Planned leads', ch.data[selectedWeekIndex], leadsFmt);
+    var html = progressBarRow('Leads so far this week', ch.leadsSoFar || 0, weekPlanLeads, leadsFmt, ch.color);
+    if (ch.isPaid) {
+      var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
+      html += progressBarRow('Spend so far this week', ch.spendSoFar || 0, ch.spendPlan || 0, eurFmt, resolveVar('--s-google'));
     }
     container.innerHTML = html;
   }
 
   function selectChannel(idx) {
-    selectedChannelIdx = idx;
     document.querySelectorAll('#channelTable tbody tr[data-idx]').forEach(function (row) {
       row.classList.toggle('selected', parseInt(row.getAttribute('data-idx'), 10) === idx);
     });
@@ -809,9 +792,10 @@
 
   drawCumChart();
   drawLeadsChart();
+  renderLastWeekSummary();
+  renderLastWeekLeadsByChannel();
   renderWeekSummary();
   renderWeekLeadsByChannel();
-  populateWeekSelect();
   fillChannelTable();
   selectChannel(0);
   window.addEventListener('resize', function () { drawCumChart(); drawLeadsChart(); });
