@@ -20,48 +20,8 @@
     --s-reddit:    #eda100;
     --pace:        #9a3a3a;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --page:        #0d0d0d;
-      --surface:     #1a1a19;
-      --surface-2:   #232322;
-      --ink:         #ffffff;
-      --ink-2:       #c3c2b7;
-      --muted:       #898781;
-      --grid:        #2c2c2a;
-      --baseline:    #383835;
-      --border:      rgba(255,255,255,0.10);
-      --good:        #0ca30c;
-      --warning:     #fab219;
-      --critical:    #d03b3b;
-      --s-google:    #3987e5;
-      --s-meta:      #d95926;
-      --s-tiktok:    #199e70;
-      --s-reddit:    #c98500;
-      --pace:        #d98a8a;
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
-    color-scheme: dark;
-    --page:        #0d0d0d;
-    --surface:     #1a1a19;
-    --surface-2:   #232322;
-    --ink:         #ffffff;
-    --ink-2:       #c3c2b7;
-    --muted:       #898781;
-    --grid:        #2c2c2a;
-    --baseline:    #383835;
-    --border:      rgba(255,255,255,0.10);
-    --good:        #0ca30c;
-    --warning:     #fab219;
-    --critical:    #d03b3b;
-    --s-google:    #3987e5;
-    --s-meta:      #d95926;
-    --s-tiktok:    #199e70;
-    --s-reddit:    #c98500;
-    --pace:        #d98a8a;
-  }
+  /* Deliberately light-only: this dashboard doesn't follow the viewer's OS dark-mode setting,
+     so the palette above renders the same for everyone regardless of their device. */
 
   .viz-root {
     background: var(--page);
