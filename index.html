@@ -140,6 +140,9 @@
   .progress-row.mini .progress-track { height: 7px; }
   .progress-row.mini .progress-pct { flex-basis: 38px; font-size: 12.5px; }
 
+  .mini-group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 4px 0 2px; }
+  .mini-group-label.second { margin-top: 12px; }
+
   details.breakdown-toggle { margin-top: 16px; }
   details.breakdown-toggle summary {
     cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--ink-2);
@@ -234,6 +237,14 @@
         <summary>Leads by channel</summary>
         <div class="progress-rows" id="lastWeekLeadsByChannel" style="margin-top:14px"></div>
       </details>
+      <details class="breakdown-toggle">
+        <summary>Spend by channel</summary>
+        <div class="progress-rows" id="lastWeekSpendByChannel" style="margin-top:14px"></div>
+      </details>
+      <details class="breakdown-toggle">
+        <summary>CPL: planned vs. actual</summary>
+        <div class="progress-rows" id="lastWeekCpl" style="margin-top:14px"></div>
+      </details>
     </div>
 
     <div class="card">
@@ -243,6 +254,14 @@
       <details class="breakdown-toggle">
         <summary>Leads by channel</summary>
         <div class="progress-rows" id="weekLeadsByChannel" style="margin-top:14px"></div>
+      </details>
+      <details class="breakdown-toggle">
+        <summary>Spend by channel</summary>
+        <div class="progress-rows" id="weekSpendByChannel" style="margin-top:14px"></div>
+      </details>
+      <details class="breakdown-toggle">
+        <summary>CPL: planned vs. actual</summary>
+        <div class="progress-rows" id="weekCpl" style="margin-top:14px"></div>
       </details>
     </div>
 
@@ -257,23 +276,6 @@
           <tbody></tbody>
         </table>
       </div>
-    </div>
-
-    <div class="card">
-      <p class="section-title">Spend by channel</p>
-      <p class="section-note">Last week's actual spend vs. this week's budget, by paid channel.</p>
-      <div class="table-scroll">
-        <table class="ch-table" id="spendTable">
-          <thead>
-            <tr><th>Channel</th><th class="num">Last actual week</th><th class="num">This week (plan)</th><th class="num">Change</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <details class="breakdown-toggle">
-        <summary>CPL detail (planned vs. actual, last week)</summary>
-        <div class="progress-rows" id="cplDetail" style="margin-top:14px"></div>
-      </details>
     </div>
 
     <div class="card">
@@ -700,19 +702,60 @@
     container.innerHTML = html;
   }
 
-  function renderWeekLeadsByChannel() {
-    var container = document.getElementById('weekLeadsByChannel');
-    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+  function channelGroupBreakdown(rowFn) {
     var googleColor = resolveVar('--s-google'), metaColor = resolveVar('--s-meta'), tiktokColor = resolveVar('--s-tiktok'), redditColor = resolveVar('--s-reddit');
     var paidColors = { google: googleColor, meta: metaColor, tiktok: tiktokColor, reddit: redditColor };
     var otherColor = resolveVar('--ink-2');
-    var html = paidChannels.map(function (ch) {
-      return progressBarRow(ch.name, ch.leadsSoFar || 0, ch.data[actualCount], leadsFmt, paidColors[ch.key], 'mini');
+    var html = '<div class="mini-group-label">Paid channels</div>';
+    html += paidChannels.map(function (ch) { return rowFn(ch, paidColors[ch.key]); }).join('');
+    html += '<div class="mini-group-label second">Organic &amp; other channels</div>';
+    html += otherChannels.map(function (ch) { return rowFn(ch, otherColor); }).join('');
+    return html;
+  }
+
+  function cplRow(label, plannedCPL, actualCPL) {
+    var eurFmt = function (v) { return '€' + v.toFixed(2); };
+    var figure, pctLabel, pctColor = 'var(--ink-2)';
+    if (plannedCPL === null || actualCPL === null) {
+      figure = 'Not enough leads that week to compute a CPL';
+      pctLabel = '–';
+    } else {
+      figure = 'Planned ' + eurFmt(plannedCPL) + ' · Actual ' + eurFmt(actualCPL);
+      pctLabel = pctChangeLabel(plannedCPL, actualCPL);
+      if (actualCPL < plannedCPL) pctColor = 'var(--good)';
+      else if (actualCPL > plannedCPL) pctColor = 'var(--critical)';
+    }
+    return '<div class="progress-row mini">' +
+      '<div class="progress-label"><span>' + label + '</span><span class="progress-figure">' + figure + '</span></div>' +
+      '<div style="flex:1 1 auto"></div>' +
+      '<div class="progress-pct" style="color:' + pctColor + '">' + pctLabel + '</div>' +
+      '</div>';
+  }
+
+  function renderWeekLeadsByChannel() {
+    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    document.getElementById('weekLeadsByChannel').innerHTML = channelGroupBreakdown(function (ch, color) {
+      return progressBarRow(ch.name, ch.leadsSoFar || 0, ch.data[actualCount], leadsFmt, color, 'mini');
+    });
+  }
+
+  function renderWeekSpendByChannel() {
+    var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
+    var paidColors = { google: resolveVar('--s-google'), meta: resolveVar('--s-meta'), tiktok: resolveVar('--s-tiktok'), reddit: resolveVar('--s-reddit') };
+    document.getElementById('weekSpendByChannel').innerHTML = paidChannels.map(function (ch) {
+      return progressBarRow(ch.name, ch.spendSoFar || 0, ch.spendPlan || 0, eurFmt, paidColors[ch.key], 'mini');
     }).join('');
-    html += otherChannels.map(function (ch) {
-      return progressBarRow(ch.name, ch.leadsSoFar || 0, ch.data[actualCount], leadsFmt, otherColor, 'mini');
+  }
+
+  function renderWeekCpl() {
+    var paidColors = { google: resolveVar('--s-google'), meta: resolveVar('--s-meta'), tiktok: resolveVar('--s-tiktok'), reddit: resolveVar('--s-reddit') };
+    document.getElementById('weekCpl').innerHTML = paidChannels.map(function (ch) {
+      var plannedLeads = ch.data[actualCount];
+      var actualLeads = ch.leadsSoFar || 0;
+      var plannedCPL = plannedLeads > 0 ? ch.spendPlan / plannedLeads : null;
+      var actualCPL = actualLeads > 0 ? (ch.spendSoFar || 0) / actualLeads : null;
+      return cplRow(ch.name, plannedCPL, actualCPL);
     }).join('');
-    container.innerHTML = html;
   }
 
   var lastWeekIndex = actualCount - 1; // Aug 21-27: the week that just closed
@@ -732,76 +775,28 @@
   }
 
   function renderLastWeekLeadsByChannel() {
-    var container = document.getElementById('lastWeekLeadsByChannel');
     var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
-    var googleColor = resolveVar('--s-google'), metaColor = resolveVar('--s-meta'), tiktokColor = resolveVar('--s-tiktok'), redditColor = resolveVar('--s-reddit');
-    var paidColors = { google: googleColor, meta: metaColor, tiktok: tiktokColor, reddit: redditColor };
-    var otherColor = resolveVar('--ink-2');
-    var html = paidChannels.map(function (ch) {
-      return progressBarRow(ch.name, ch.data[lastWeekIndex], ch.plan[lastWeekPlanIndex], leadsFmt, paidColors[ch.key], 'mini');
-    }).join('');
-    html += otherChannels.map(function (ch) {
-      return progressBarRow(ch.name, ch.data[lastWeekIndex], ch.plan[lastWeekPlanIndex], leadsFmt, otherColor, 'mini');
-    }).join('');
-    container.innerHTML = html;
+    document.getElementById('lastWeekLeadsByChannel').innerHTML = channelGroupBreakdown(function (ch, color) {
+      return progressBarRow(ch.name, ch.data[lastWeekIndex], ch.plan[lastWeekPlanIndex], leadsFmt, color, 'mini');
+    });
   }
 
-  function renderSpendTable() {
-    var tbody = document.querySelector('#spendTable tbody');
-    var paidColors = { google: resolveVar('--s-google'), meta: resolveVar('--s-meta'), tiktok: resolveVar('--s-tiktok'), reddit: resolveVar('--s-reddit') };
+  function renderLastWeekSpendByChannel() {
     var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
-
-    var rows = paidChannels.map(function (ch) {
-      var last = ch.lastWeekSpendActual, next = ch.spendPlan;
-      return '<tr>' +
-        '<td><div class="ch-name"><span class="ch-dot" style="background:' + paidColors[ch.key] + '"></span>' + ch.name + '</div></td>' +
-        '<td class="num">' + eurFmt(last) + '</td>' +
-        '<td class="num is-plan">' + eurFmt(next) + '</td>' +
-        '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(last, next) + '</td>' +
-        '</tr>';
+    var paidColors = { google: resolveVar('--s-google'), meta: resolveVar('--s-meta'), tiktok: resolveVar('--s-tiktok'), reddit: resolveVar('--s-reddit') };
+    document.getElementById('lastWeekSpendByChannel').innerHTML = paidChannels.map(function (ch) {
+      return progressBarRow(ch.name, ch.lastWeekSpendActual || 0, ch.lastWeekSpendPlan || 0, eurFmt, paidColors[ch.key], 'mini');
     }).join('');
-
-    var totalLast = sumField(paidChannels, 'lastWeekSpendActual');
-    var totalNext = sumField(paidChannels, 'spendPlan');
-    rows += '<tr style="font-weight:800; border-top:2px solid var(--baseline)">' +
-      '<td>Paid (total)</td>' +
-      '<td class="num">' + eurFmt(totalLast) + '</td>' +
-      '<td class="num is-plan">' + eurFmt(totalNext) + '</td>' +
-      '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(totalLast, totalNext) + '</td>' +
-      '</tr>';
-
-    tbody.innerHTML = rows;
   }
 
-  function renderCplDetail() {
-    var container = document.getElementById('cplDetail');
-    var eurFmt = function (v) { return '€' + v.toFixed(2); };
-
-    var html = paidChannels.map(function (ch) {
+  function renderLastWeekCpl() {
+    document.getElementById('lastWeekCpl').innerHTML = paidChannels.map(function (ch) {
       var plannedLeads = ch.plan[lastWeekPlanIndex];
       var actualLeads = ch.data[lastWeekIndex];
       var plannedCPL = plannedLeads > 0 ? ch.lastWeekSpendPlan / plannedLeads : null;
       var actualCPL = actualLeads > 0 ? ch.lastWeekSpendActual / actualLeads : null;
-
-      var figure, pctLabel, pctColor = 'var(--ink-2)';
-      if (plannedCPL === null || actualCPL === null) {
-        figure = 'Not enough leads that week to compute a CPL';
-        pctLabel = '–';
-      } else {
-        figure = 'Planned ' + eurFmt(plannedCPL) + ' · Actual ' + eurFmt(actualCPL);
-        pctLabel = pctChangeLabel(plannedCPL, actualCPL);
-        if (actualCPL < plannedCPL) pctColor = 'var(--good)';
-        else if (actualCPL > plannedCPL) pctColor = 'var(--critical)';
-      }
-
-      return '<div class="progress-row mini">' +
-        '<div class="progress-label"><span>' + ch.name + '</span><span class="progress-figure">' + figure + '</span></div>' +
-        '<div style="flex:1 1 auto"></div>' +
-        '<div class="progress-pct" style="color:' + pctColor + '">' + pctLabel + '</div>' +
-        '</div>';
+      return cplRow(ch.name, plannedCPL, actualCPL);
     }).join('');
-
-    container.innerHTML = html;
   }
 
   function renderChannelProgress(ch) {
@@ -829,11 +824,13 @@
   drawLeadsChart();
   renderLastWeekSummary();
   renderLastWeekLeadsByChannel();
+  renderLastWeekSpendByChannel();
+  renderLastWeekCpl();
   renderWeekSummary();
   renderWeekLeadsByChannel();
+  renderWeekSpendByChannel();
+  renderWeekCpl();
   fillChannelTable();
-  renderSpendTable();
-  renderCplDetail();
   selectChannel(0);
   window.addEventListener('resize', function () { drawCumChart(); drawLeadsChart(); });
 })();
