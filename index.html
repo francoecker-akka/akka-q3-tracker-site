@@ -260,6 +260,23 @@
     </div>
 
     <div class="card">
+      <p class="section-title">Spend by channel</p>
+      <p class="section-note">Last week's actual spend vs. this week's budget, by paid channel.</p>
+      <div class="table-scroll">
+        <table class="ch-table" id="spendTable">
+          <thead>
+            <tr><th>Channel</th><th class="num">Last actual week</th><th class="num">This week (plan)</th><th class="num">Change</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <details class="breakdown-toggle">
+        <summary>CPL detail (planned vs. actual, last week)</summary>
+        <div class="progress-rows" id="cplDetail" style="margin-top:14px"></div>
+      </details>
+    </div>
+
+    <div class="card">
       <p class="section-title">Weekly breakdown: <span id="detailChannelName">Google</span></p>
       <p class="section-note">Dark numbers are results. Light gray numbers are the plan, not yet real. The current week is highlighted.</p>
       <div class="table-scroll">
@@ -729,6 +746,64 @@
     container.innerHTML = html;
   }
 
+  function renderSpendTable() {
+    var tbody = document.querySelector('#spendTable tbody');
+    var paidColors = { google: resolveVar('--s-google'), meta: resolveVar('--s-meta'), tiktok: resolveVar('--s-tiktok'), reddit: resolveVar('--s-reddit') };
+    var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
+
+    var rows = paidChannels.map(function (ch) {
+      var last = ch.lastWeekSpendActual, next = ch.spendPlan;
+      return '<tr>' +
+        '<td><div class="ch-name"><span class="ch-dot" style="background:' + paidColors[ch.key] + '"></span>' + ch.name + '</div></td>' +
+        '<td class="num">' + eurFmt(last) + '</td>' +
+        '<td class="num is-plan">' + eurFmt(next) + '</td>' +
+        '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(last, next) + '</td>' +
+        '</tr>';
+    }).join('');
+
+    var totalLast = sumField(paidChannels, 'lastWeekSpendActual');
+    var totalNext = sumField(paidChannels, 'spendPlan');
+    rows += '<tr style="font-weight:800; border-top:2px solid var(--baseline)">' +
+      '<td>Paid (total)</td>' +
+      '<td class="num">' + eurFmt(totalLast) + '</td>' +
+      '<td class="num is-plan">' + eurFmt(totalNext) + '</td>' +
+      '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(totalLast, totalNext) + '</td>' +
+      '</tr>';
+
+    tbody.innerHTML = rows;
+  }
+
+  function renderCplDetail() {
+    var container = document.getElementById('cplDetail');
+    var eurFmt = function (v) { return '€' + v.toFixed(2); };
+
+    var html = paidChannels.map(function (ch) {
+      var plannedLeads = ch.plan[lastWeekPlanIndex];
+      var actualLeads = ch.data[lastWeekIndex];
+      var plannedCPL = plannedLeads > 0 ? ch.lastWeekSpendPlan / plannedLeads : null;
+      var actualCPL = actualLeads > 0 ? ch.lastWeekSpendActual / actualLeads : null;
+
+      var figure, pctLabel, pctColor = 'var(--ink-2)';
+      if (plannedCPL === null || actualCPL === null) {
+        figure = 'Not enough leads that week to compute a CPL';
+        pctLabel = '–';
+      } else {
+        figure = 'Planned ' + eurFmt(plannedCPL) + ' · Actual ' + eurFmt(actualCPL);
+        pctLabel = pctChangeLabel(plannedCPL, actualCPL);
+        if (actualCPL < plannedCPL) pctColor = 'var(--good)';
+        else if (actualCPL > plannedCPL) pctColor = 'var(--critical)';
+      }
+
+      return '<div class="progress-row mini">' +
+        '<div class="progress-label"><span>' + ch.name + '</span><span class="progress-figure">' + figure + '</span></div>' +
+        '<div style="flex:1 1 auto"></div>' +
+        '<div class="progress-pct" style="color:' + pctColor + '">' + pctLabel + '</div>' +
+        '</div>';
+    }).join('');
+
+    container.innerHTML = html;
+  }
+
   function renderChannelProgress(ch) {
     var container = document.getElementById('channelProgress');
     var weekPlanLeads = ch.data[actualCount];
@@ -757,6 +832,8 @@
   renderWeekSummary();
   renderWeekLeadsByChannel();
   fillChannelTable();
+  renderSpendTable();
+  renderCplDetail();
   selectChannel(0);
   window.addEventListener('resize', function () { drawCumChart(); drawLeadsChart(); });
 })();
