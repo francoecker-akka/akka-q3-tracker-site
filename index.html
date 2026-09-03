@@ -289,7 +289,7 @@
 
     <div class="card">
       <p class="section-title">Leads QTD by channel</p>
-      <p class="section-note">Leads booked so far this quarter against each channel's full-Q3 plan.</p>
+      <p class="section-note">Leads booked so far this quarter, including this week's progress so far, against each channel's full-Q3 plan.</p>
       <div class="progress-rows" id="leadsQtdByChannel"></div>
     </div>
 
@@ -820,7 +820,7 @@
   function qtdLeads(ch) {
     var sum = 0;
     for (var i = 0; i < actualCount; i++) sum += ch.data[i];
-    return sum;
+    return sum + (ch.leadsSoFar || 0); // plus this week's partial progress, so QTD tracks right up to now
   }
 
   function renderLeadsQtdByChannel() {
