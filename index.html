@@ -154,6 +154,8 @@
     border-bottom: 4px solid transparent; transition: transform 0.12s;
   }
   details.breakdown-toggle[open] summary::before { transform: rotate(90deg); }
+  details.breakdown-toggle.card-toggle { margin-top: 0; }
+  details.breakdown-toggle.card-toggle summary { font-size: 15px; font-weight: 700; color: var(--ink); }
 
   footer.notes { font-size: 12px; color: var(--muted); line-height: 1.6; padding-top: 4px; }
   footer.notes a { color: inherit; }
@@ -266,12 +268,24 @@
     </div>
 
     <div class="card">
+      <details class="breakdown-toggle card-toggle">
+        <summary id="nextWeekTargetsSummary">Next week targets</summary>
+        <p class="section-note" style="margin-top:8px">What the plan asks for next week, in total and by channel. None of this has happened yet.</p>
+        <div class="progress-rows" id="nextWeekSummary"></div>
+        <div class="mini-group-label" style="margin-top:12px">Paid channels</div>
+        <div class="progress-rows" id="nextWeekPaid"></div>
+        <div class="mini-group-label second">Organic &amp; other channels</div>
+        <div class="progress-rows" id="nextWeekOrganic"></div>
+      </details>
+    </div>
+
+    <div class="card">
       <p class="section-title">Leads by channel</p>
-      <p class="section-note">Full 14-week trend, the last two confirmed weeks, and what the plan (not yet real) asks for this week (in progress) and the week after. Change compares last week's real result to this week's plan. Click a channel for the full weekly breakdown.</p>
+      <p class="section-note">Full 14-week trend, the last two confirmed weeks, and what the plan (not yet real) asks for this week (in progress) and the week after. Click a channel for the full weekly breakdown.</p>
       <div class="table-scroll">
         <table class="ch-table" id="channelTable">
           <thead>
-            <tr><th>Channel</th><th class="num">Two weeks ago</th><th class="num">Last week</th><th class="num">This week</th><th class="num">Next week</th><th class="num">Change</th><th>Trend</th><th>Status</th></tr>
+            <tr><th>Channel</th><th class="num">Two weeks ago</th><th class="num">Last week</th><th class="num">This week</th><th class="num">Next week</th><th>Trend</th><th>Status</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -310,11 +324,12 @@
   // lastWeekSpendActual/lastWeekSpendPlan: the closed week's (Aug 21-27) final spend, captured before
   // spendSoFar/spendPlan got reset to track the new live week -- there's no 14-week spend series like
   // there is for leads, so this closed-week snapshot has to be kept by hand, separately.
+  // nextWeekSpendPlan: same story, one week further out (Sep 4-10) -- for the Next week targets card.
   var paidChannels = [
-    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,228,723,869,902,893,568], plan: [241,703,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 365, spendSoFar: 17184.06, spendPlan: 19046, lastWeekSpendActual: 10172.41, lastWeekSpendPlan: 9523 },
-    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,252,1400,1783,1934,1752,1168], plan: [489,1200,1583,1684,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 268, spendSoFar: 16477.38, spendPlan: 38942, lastWeekSpendActual: 15428.35, lastWeekSpendPlan: 17904 },
-    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,26,54,108,146,204,159], plan: [18,74,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 40, spendSoFar: 3686.40, spendPlan: 3641, lastWeekSpendActual: 3616.32, lastWeekSpendPlan: 3711 },
-    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,1,8,28,39,43,25], plan: [1,8,28,39,43,25], status: "good", statusLabel: "Launched early, on plan", leadsSoFar: 2, spendSoFar: 1367.32, spendPlan: 1857, lastWeekSpendActual: 270.40, lastWeekSpendPlan: 605 }
+    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,228,723,869,902,893,568], plan: [241,703,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 365, spendSoFar: 17184.06, spendPlan: 19046, lastWeekSpendActual: 10172.41, lastWeekSpendPlan: 9523, nextWeekSpendPlan: 22855 },
+    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,252,1400,1783,1934,1752,1168], plan: [489,1200,1583,1684,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 268, spendSoFar: 16477.38, spendPlan: 38942, lastWeekSpendActual: 15428.35, lastWeekSpendPlan: 17904, nextWeekSpendPlan: 47941 },
+    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,26,54,108,146,204,159], plan: [18,74,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 40, spendSoFar: 3686.40, spendPlan: 3641, lastWeekSpendActual: 3616.32, lastWeekSpendPlan: 3711, nextWeekSpendPlan: 3282 },
+    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,1,8,28,39,43,25], plan: [1,8,28,39,43,25], status: "good", statusLabel: "Launched early, on plan", leadsSoFar: 2, spendSoFar: 1367.32, spendPlan: 1857, lastWeekSpendActual: 270.40, lastWeekSpendPlan: 605, nextWeekSpendPlan: 2105 }
   ];
   var otherChannels = [
     { name: "Social Media (owned)", data: [21,33,22,27,41,38,25,33,61,99,129,154,170,119], plan: [50,99,129,154,170,119], status: "warning", statusLabel: "Needs to scale", leadsSoFar: 35 },
@@ -618,7 +633,6 @@
       '<td class="num">' + lastWeek.toLocaleString('en-US') + '</td>' +
       '<td class="num is-plan">' + thisWeek.toLocaleString('en-US') + '</td>' +
       '<td class="num is-plan">' + (nextWeek === null ? '–' : nextWeek.toLocaleString('en-US')) + '</td>' +
-      '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(lastWeek, thisWeek) + '</td>' +
       '<td class="spark-cell">' + sparkline(ch.data, color) + '</td>' +
       '<td><span class="chip ' + ch.status + '"><svg viewBox="0 0 16 16" fill="none">' + statusIcon(ch.status) + '</svg>' + ch.statusLabel + '</span></td>' +
       '</tr>';
@@ -659,9 +673,9 @@
     clickable.push({ name: 'Organic (total)', data: sumArrays(otherChannels), color: otherColor, isPaid: false, leadsSoFar: sumField(otherChannels, 'leadsSoFar') });
 
     var pi = 0;
-    var html = '<tr class="group-row" data-idx="' + paidTotalIdx + '"><td colspan="8">Paid channels</td></tr>';
+    var html = '<tr class="group-row" data-idx="' + paidTotalIdx + '"><td colspan="7">Paid channels</td></tr>';
     html += paidChannels.map(function (ch) { return channelRow(ch, paidColors[ch.key], pi++); }).join('');
-    html += '<tr class="group-row" data-idx="' + organicTotalIdx + '"><td colspan="8">Organic &amp; other channels</td></tr>';
+    html += '<tr class="group-row" data-idx="' + organicTotalIdx + '"><td colspan="7">Organic &amp; other channels</td></tr>';
     html += otherChannels.map(function (ch) { return channelRow(ch, otherColor, pi++); }).join('');
     tbody.innerHTML = html;
 
@@ -756,6 +770,31 @@
     var paidColors = { google: resolveVar('--s-google'), meta: resolveVar('--s-meta'), tiktok: resolveVar('--s-tiktok'), reddit: resolveVar('--s-reddit') };
     document.getElementById('weekSpendByChannel').innerHTML = paidChannels.map(function (ch) {
       return progressBarRow(ch.name, ch.spendSoFar || 0, ch.spendPlan || 0, eurFmt, paidColors[ch.key], 'mini');
+    }).join('');
+  }
+
+  function planStatRow(label, figure) {
+    return '<div class="progress-row mini"><div class="progress-label"><span>' + label + '</span><span class="progress-figure">' + figure + '</span></div></div>';
+  }
+
+  function renderNextWeekTargets() {
+    var nextWeekIdx = actualCount + 1;
+    if (nextWeekIdx >= weeks.length) return; // no next week left in the quarter
+    document.getElementById('nextWeekTargetsSummary').textContent = 'Next week targets (' + weeks[nextWeekIdx] + ')';
+
+    var leadsFmt = function (v) { return Math.round(v).toLocaleString('en-US'); };
+    var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
+
+    document.getElementById('nextWeekSummary').innerHTML =
+      planStatRow('Leads', leadsFmt(totalLeads[nextWeekIdx])) +
+      planStatRow('Spend', eurFmt(sumField(paidChannels, 'nextWeekSpendPlan')));
+
+    document.getElementById('nextWeekPaid').innerHTML = paidChannels.map(function (ch) {
+      return planStatRow(ch.name, leadsFmt(ch.data[nextWeekIdx]) + ' leads · ' + eurFmt(ch.nextWeekSpendPlan) + ' spend');
+    }).join('');
+
+    document.getElementById('nextWeekOrganic').innerHTML = otherChannels.map(function (ch) {
+      return planStatRow(ch.name, leadsFmt(ch.data[nextWeekIdx]) + ' leads');
     }).join('');
   }
 
@@ -864,6 +903,7 @@
   renderWeekLeadsByChannel();
   renderWeekSpendByChannel();
   renderWeekCpl();
+  renderNextWeekTargets();
   fillChannelTable();
   renderLeadsQtdByChannel();
   selectChannel(0);
