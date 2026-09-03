@@ -267,11 +267,11 @@
 
     <div class="card">
       <p class="section-title">Leads by channel</p>
-      <p class="section-note">Full 14-week trend, the last two confirmed weeks, and what the plan (not yet real) asks for next week. Click a channel for the full weekly breakdown.</p>
+      <p class="section-note">Full 14-week trend, the last two confirmed weeks, and what the plan (not yet real) asks for this week (in progress) and the week after. Change compares last week's real result to this week's plan. Click a channel for the full weekly breakdown.</p>
       <div class="table-scroll">
         <table class="ch-table" id="channelTable">
           <thead>
-            <tr><th>Channel</th><th class="num">Two weeks ago</th><th class="num">Last actual week</th><th class="num">Next week (plan)</th><th class="num">Change</th><th>Trend</th><th>Status</th></tr>
+            <tr><th>Channel</th><th class="num">Two weeks ago</th><th class="num">Last week</th><th class="num">This week</th><th class="num">Next week</th><th class="num">Change</th><th>Trend</th><th>Status</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -608,14 +608,17 @@
   function channelRow(ch, color, idx) {
     var twoAgoIdx = actualCount - 2;
     var twoAgo = twoAgoIdx >= 0 ? Math.round(ch.data[twoAgoIdx]) : null;
-    var last = Math.round(ch.data[actualCount - 1]);
-    var next = Math.round(ch.data[actualCount]);
+    var lastWeek = Math.round(ch.data[actualCount - 1]); // last week: the most recently closed, real result
+    var thisWeek = Math.round(ch.data[actualCount]); // this week: in progress right now, still plan
+    var nextWeekIdx = actualCount + 1;
+    var nextWeek = nextWeekIdx < ch.data.length ? Math.round(ch.data[nextWeekIdx]) : null; // next week: plan, further out
     return '<tr data-idx="' + idx + '">' +
       '<td><div class="ch-name"><span class="ch-dot" style="background:' + color + '"></span>' + ch.name + '</div></td>' +
       '<td class="num">' + (twoAgo === null ? '–' : twoAgo.toLocaleString('en-US')) + '</td>' +
-      '<td class="num">' + last.toLocaleString('en-US') + '</td>' +
-      '<td class="num is-plan">' + next.toLocaleString('en-US') + '</td>' +
-      '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(last, next) + '</td>' +
+      '<td class="num">' + lastWeek.toLocaleString('en-US') + '</td>' +
+      '<td class="num is-plan">' + thisWeek.toLocaleString('en-US') + '</td>' +
+      '<td class="num is-plan">' + (nextWeek === null ? '–' : nextWeek.toLocaleString('en-US')) + '</td>' +
+      '<td class="num" style="color:var(--ink-2)">' + pctChangeLabel(lastWeek, thisWeek) + '</td>' +
       '<td class="spark-cell">' + sparkline(ch.data, color) + '</td>' +
       '<td><span class="chip ' + ch.status + '"><svg viewBox="0 0 16 16" fill="none">' + statusIcon(ch.status) + '</svg>' + ch.statusLabel + '</span></td>' +
       '</tr>';
@@ -656,9 +659,9 @@
     clickable.push({ name: 'Organic (total)', data: sumArrays(otherChannels), color: otherColor, isPaid: false, leadsSoFar: sumField(otherChannels, 'leadsSoFar') });
 
     var pi = 0;
-    var html = '<tr class="group-row" data-idx="' + paidTotalIdx + '"><td colspan="7">Paid channels</td></tr>';
+    var html = '<tr class="group-row" data-idx="' + paidTotalIdx + '"><td colspan="8">Paid channels</td></tr>';
     html += paidChannels.map(function (ch) { return channelRow(ch, paidColors[ch.key], pi++); }).join('');
-    html += '<tr class="group-row" data-idx="' + organicTotalIdx + '"><td colspan="7">Organic &amp; other channels</td></tr>';
+    html += '<tr class="group-row" data-idx="' + organicTotalIdx + '"><td colspan="8">Organic &amp; other channels</td></tr>';
     html += otherChannels.map(function (ch) { return channelRow(ch, otherColor, pi++); }).join('');
     tbody.innerHTML = html;
 
