@@ -303,7 +303,7 @@
   var bookings = [86076,150639,55382,66048,80975,52919,42362,42020,51412,141571,171830,198841,191845,136552];
   var totalLeads = [698,1888,1777,971,997,837,442,597,892,3106,3971,4381,4198,2788];
 
-  // "So far" figures cover Aug 28-Sep 2 (this week is still open, Sep 3 not in yet)
+  // "So far" figures cover Aug 28-Sep 3 (Sep 3 is today, still an open/partial day)
   // `plan` is the last known Google Sheet forecast for weeks 8-13, hand-set and frozen -- never
   // derive it from `data`, since `data` gets overwritten with the real (BigQuery) number the moment
   // a week closes. Update `plan` by hand only when the sheet's own forecast changes.
@@ -311,18 +311,18 @@
   // spendSoFar/spendPlan got reset to track the new live week -- there's no 14-week spend series like
   // there is for leads, so this closed-week snapshot has to be kept by hand, separately.
   var paidChannels = [
-    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,228,723,869,902,893,568], plan: [241,703,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 304, spendSoFar: 13521.16, spendPlan: 19046, lastWeekSpendActual: 10172.41, lastWeekSpendPlan: 9523 },
-    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,252,1400,1783,1934,1752,1168], plan: [489,1200,1583,1684,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 212, spendSoFar: 9657.12, spendPlan: 38942, lastWeekSpendActual: 15428.35, lastWeekSpendPlan: 17904 },
-    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,26,54,108,146,204,159], plan: [18,74,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 33, spendSoFar: 3018.54, spendPlan: 3641, lastWeekSpendActual: 3616.32, lastWeekSpendPlan: 3711 },
-    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,1,8,28,39,43,25], plan: [1,8,28,39,43,25], status: "good", statusLabel: "Launched early, on plan", leadsSoFar: 0, spendSoFar: 945.03, spendPlan: 1857, lastWeekSpendActual: 270.40, lastWeekSpendPlan: 605 }
+    { name: "Google", key: "google", data: [179,1191,982,109,95,68,76,83,228,723,869,902,893,568], plan: [241,703,869,902,893,568], status: "critical", statusLabel: "Collapsed", leadsSoFar: 365, spendSoFar: 17184.06, spendPlan: 19046, lastWeekSpendActual: 10172.41, lastWeekSpendPlan: 9523 },
+    { name: "Meta", key: "meta", data: [46,148,241,314,332,209,137,209,252,1400,1783,1934,1752,1168], plan: [489,1200,1583,1684,1752,1168], status: "warning", statusLabel: "Needs to double", leadsSoFar: 268, spendSoFar: 16477.38, spendPlan: 38942, lastWeekSpendActual: 15428.35, lastWeekSpendPlan: 17904 },
+    { name: "TikTok", key: "tiktok", data: [0,0,0,0,0,0,0,9,26,54,108,146,204,159], plan: [18,74,108,146,204,159], status: "warning", statusLabel: "Just launched", leadsSoFar: 40, spendSoFar: 3686.40, spendPlan: 3641, lastWeekSpendActual: 3616.32, lastWeekSpendPlan: 3711 },
+    { name: "Reddit", key: "reddit", data: [0,0,0,0,0,0,0,0,1,8,28,39,43,25], plan: [1,8,28,39,43,25], status: "good", statusLabel: "Launched early, on plan", leadsSoFar: 2, spendSoFar: 1367.32, spendPlan: 1857, lastWeekSpendActual: 270.40, lastWeekSpendPlan: 605 }
   ];
   var otherChannels = [
-    { name: "Social Media (owned)", data: [21,33,22,27,41,38,25,33,61,99,129,154,170,119], plan: [50,99,129,154,170,119], status: "warning", statusLabel: "Needs to scale", leadsSoFar: 28 },
+    { name: "Social Media (owned)", data: [21,33,22,27,41,38,25,33,61,99,129,154,170,119], plan: [50,99,129,154,170,119], status: "warning", statusLabel: "Needs to scale", leadsSoFar: 35 },
     { name: "GPs", data: [5,16,14,7,7,4,0,1,2,26,49,73,80,56], plan: [16,26,49,73,80,56], status: "critical", statusLabel: "Stalled", leadsSoFar: 0 },
-    { name: "Emails", data: [3,4,3,37,14,6,4,1,84,32,52,78,48,32], plan: [8,232,252,378,48,232], status: "good", statusLabel: "Reactivation spike", leadsSoFar: 109 },
-    { name: "PR", data: [24,14,14,12,9,8,7,9,12,14,21,25,25,21], plan: [9,14,21,25,25,21], status: "good", statusLabel: "On plan", leadsSoFar: 10 },
-    { name: "Organic", data: [58,24,34,27,42,38,17,46,22,51,41,63,57,26], plan: [36,51,41,63,57,26], status: "good", statusLabel: "Ahead of plan", leadsSoFar: 23 },
-    { name: "Unknown/Direct", data: [362,458,467,438,457,466,176,206,204,699,892,967,925,614], plan: [240,635,828,887,925,614], status: "warning", statusLabel: "Not attributable", leadsSoFar: 135 }
+    { name: "Emails", data: [3,4,3,37,14,6,4,1,84,32,52,78,48,32], plan: [8,232,252,378,48,232], status: "good", statusLabel: "Reactivation spike", leadsSoFar: 115 },
+    { name: "PR", data: [24,14,14,12,9,8,7,9,12,14,21,25,25,21], plan: [9,14,21,25,25,21], status: "good", statusLabel: "On plan", leadsSoFar: 14 },
+    { name: "Organic", data: [58,24,34,27,42,38,17,46,22,51,41,63,57,26], plan: [36,51,41,63,57,26], status: "good", statusLabel: "Ahead of plan", leadsSoFar: 28 },
+    { name: "Unknown/Direct", data: [362,458,467,438,457,466,176,206,204,699,892,967,925,614], plan: [240,635,828,887,925,614], status: "warning", statusLabel: "Not attributable", leadsSoFar: 179 }
   ];
 
   var cum = [];
