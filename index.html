@@ -157,6 +157,13 @@
   details.breakdown-toggle.card-toggle { margin-top: 0; }
   details.breakdown-toggle.card-toggle summary { font-size: 15px; font-weight: 700; color: var(--ink); }
 
+  .next-week-totals { display: flex; gap: 28px; margin: 10px 0 16px; }
+  .next-week-totals .nwt-stat { display: inline-flex; align-items: baseline; gap: 8px; }
+  .next-week-totals .nwt-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .next-week-totals .nwt-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .next-week-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 560px) { .next-week-columns { grid-template-columns: 1fr; } }
+
   footer.notes { font-size: 12px; color: var(--muted); line-height: 1.6; padding-top: 4px; }
   footer.notes a { color: inherit; }
 
@@ -271,11 +278,17 @@
       <details class="breakdown-toggle card-toggle">
         <summary id="nextWeekTargetsSummary">Next week targets</summary>
         <p class="section-note" style="margin-top:8px">What the plan asks for next week, in total and by channel. None of this has happened yet.</p>
-        <div class="progress-rows" id="nextWeekSummary"></div>
-        <div class="mini-group-label" style="margin-top:12px">Paid channels</div>
-        <div class="progress-rows" id="nextWeekPaid"></div>
-        <div class="mini-group-label second">Organic &amp; other channels</div>
-        <div class="progress-rows" id="nextWeekOrganic"></div>
+        <div class="next-week-totals" id="nextWeekSummary"></div>
+        <div class="next-week-columns">
+          <div>
+            <div class="mini-group-label">Organic &amp; other channels</div>
+            <div class="progress-rows" id="nextWeekOrganic"></div>
+          </div>
+          <div>
+            <div class="mini-group-label">Paid channels</div>
+            <div class="progress-rows" id="nextWeekPaid"></div>
+          </div>
+        </div>
       </details>
     </div>
 
@@ -786,8 +799,8 @@
     var eurFmt = function (v) { return '€' + Math.round(v).toLocaleString('en-US'); };
 
     document.getElementById('nextWeekSummary').innerHTML =
-      planStatRow('Leads', leadsFmt(totalLeads[nextWeekIdx])) +
-      planStatRow('Spend', eurFmt(sumField(paidChannels, 'nextWeekSpendPlan')));
+      '<span class="nwt-stat"><span class="nwt-label">Leads</span><span class="nwt-value">' + leadsFmt(totalLeads[nextWeekIdx]) + '</span></span>' +
+      '<span class="nwt-stat"><span class="nwt-label">Spend</span><span class="nwt-value">' + eurFmt(sumField(paidChannels, 'nextWeekSpendPlan')) + '</span></span>';
 
     document.getElementById('nextWeekPaid').innerHTML = paidChannels.map(function (ch) {
       return planStatRow(ch.name, leadsFmt(ch.data[nextWeekIdx]) + ' leads · ' + eurFmt(ch.nextWeekSpendPlan) + ' spend');
