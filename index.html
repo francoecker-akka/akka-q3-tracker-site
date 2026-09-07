@@ -19,6 +19,12 @@
     --s-tiktok:    #1baf7a;
     --s-reddit:    #eda100;
     --pace:        #9a3a3a;
+    --c-spain:     #d6336c;
+    --c-italy:     #2a78d6;
+    --c-nordics:   #0ca3a3;
+    --c-france:    #7048c9;
+    --c-us:        #f08c00;
+    --c-others:    #5c5f66;
   }
   /* Deliberately light-only: this dashboard doesn't follow the viewer's OS dark-mode setting,
      so the palette above renders the same for everyone regardless of their device. */
@@ -318,6 +324,16 @@
       <p class="section-title">Leads QTD by channel</p>
       <p class="section-note">Leads booked so far this quarter, including this week's progress so far, against each channel's full-Q3 plan.</p>
       <div class="progress-rows" id="leadsQtdByChannel"></div>
+    </div>
+
+    <div class="card">
+      <p class="section-title">Organic traffic by country</p>
+      <p class="section-note">GA4 sessions from organic channels (search, social, video), weekly, by country. The last point is Sep 4-10 so far, still open.</p>
+      <div class="chart-holder">
+        <svg id="organicTrafficChart" viewBox="0 0 860 300" style="width:100%; height:auto; display:block;"></svg>
+        <div class="tooltip" id="organicTrafficTooltip"></div>
+      </div>
+      <div class="legend" id="organicTrafficLegend"></div>
     </div>
 
   </div>
@@ -885,6 +901,95 @@
     });
   }
 
+  // GA4 sessions, session_default_channel_group contains "Organic" (Organic Search/Social/Video),
+  // summed by week and by country group. Pulled by hand from the GA4 connector -- no live refresh yet.
+  var organicWeeks = ["Jul 1-3","Jul 4-9","Jul 10-16","Jul 17-23","Jul 24-30","Jul 31-Aug 6","Aug 7-13","Aug 14-20","Aug 21-27","Aug 28-Sep 3","Sep 4-10"];
+  var organicActualCount = 10; // "Sep 4-10" (index 10) is still open, through Sep 7 only
+  var organicSeries = [
+    { name: "Spain", color: "--c-spain", data: [171,298,379,337,488,389,307,727,432,452,201] },
+    { name: "Italy", color: "--c-italy", data: [269,451,548,599,540,493,356,642,579,657,354] },
+    { name: "Nordics", color: "--c-nordics", data: [62,141,179,185,112,141,128,175,213,297,165] },
+    { name: "France", color: "--c-france", data: [334,666,1143,1020,5987,1374,301,177,231,315,141] },
+    { name: "US", color: "--c-us", data: [56,116,315,868,251,209,254,212,235,203,38] },
+    { name: "Others", color: "--c-others", data: [332,609,942,910,1291,1070,568,505,570,724,274] }
+  ];
+
+  function drawOrganicTrafficChart() {
+    var svg = document.getElementById('organicTrafficChart');
+    var W = 860, H = 300, padL = 56, padR = 16, padT = 16, padB = 30;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var allValues = [].concat.apply([], organicSeries.map(function (s) { return s.data; }));
+    var maxY = Math.max.apply(null, allValues) * 1.05;
+    var n = organicWeeks.length;
+    var xStep = plotW / (n - 1);
+    function x(i) { return padL + i * xStep; }
+    function y(v) { return padT + plotH - (v / maxY) * plotH; }
+
+    var svgns = "http://www.w3.org/2000/svg";
+    function el(tag, attrs) {
+      var e = document.createElementNS(svgns, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    for (var g = 0; g <= 4; g++) {
+      var gv = maxY * g / 4;
+      var gy = y(gv);
+      svg.appendChild(el('line', { x1: padL, x2: W - padR, y1: gy, y2: gy, class: 'grid-line' }));
+      var lbl = el('text', { x: padL - 8, y: gy + 4, 'text-anchor': 'end', class: 'axis-label' });
+      lbl.textContent = Math.round(gv).toLocaleString('en-US');
+      svg.appendChild(lbl);
+    }
+    svg.appendChild(el('line', { x1: padL, x2: W - padR, y1: y(0), y2: y(0), class: 'baseline' }));
+
+    organicWeeks.forEach(function (w, i) {
+      if (i % 2 !== 0 && i !== n - 1) return;
+      var t = el('text', { x: x(i), y: H - 8, 'text-anchor': 'middle', class: 'axis-label' });
+      t.textContent = w;
+      svg.appendChild(t);
+    });
+
+    var tooltip = document.getElementById('organicTrafficTooltip');
+
+    organicSeries.forEach(function (s) {
+      var color = resolveVar(s.color);
+      var closedPts = s.data.slice(0, organicActualCount + 1);
+      var closedPath = 'M ' + closedPts.map(function (v, i) { return x(i) + ' ' + y(v); }).join(' L ');
+      svg.appendChild(el('path', { d: closedPath, fill: 'none', stroke: color, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+
+      if (organicActualCount < n - 1) {
+        var openPts = s.data.slice(organicActualCount);
+        var openPath = 'M ' + openPts.map(function (v, i) { return x(i + organicActualCount) + ' ' + y(v); }).join(' L ');
+        svg.appendChild(el('path', { d: openPath, fill: 'none', stroke: color, 'stroke-width': 2.5, 'stroke-dasharray': '2,5', 'stroke-linecap': 'round' }));
+      }
+
+      s.data.forEach(function (v, i) {
+        var isOpenWeek = i >= organicActualCount;
+        var c = el('circle', { cx: x(i), cy: y(v), r: 3.5, fill: isOpenWeek ? resolveVar('--surface') : color, stroke: color, 'stroke-width': 2 });
+        c.style.cursor = 'pointer';
+        c.addEventListener('mouseenter', function () {
+          var rect = svg.getBoundingClientRect();
+          var holder = svg.parentElement.getBoundingClientRect();
+          var px = rect.left - holder.left + (x(i) / W) * rect.width;
+          var py = rect.top - holder.top + (y(v) / H) * rect.height;
+          tooltip.innerHTML = '<b>' + organicWeeks[i] + '</b><br>' + s.name + ': <b>' + v.toLocaleString('en-US') + '</b> sessions' + (isOpenWeek ? ' (so far)' : '');
+          tooltip.style.left = px + 'px';
+          tooltip.style.top = (py - 8) + 'px';
+          tooltip.classList.add('show');
+        });
+        c.addEventListener('mouseleave', function () { tooltip.classList.remove('show'); });
+        svg.appendChild(c);
+      });
+    });
+  }
+
+  function renderOrganicTrafficLegend() {
+    document.getElementById('organicTrafficLegend').innerHTML = organicSeries.map(function (s) {
+      return '<div class="item"><span class="swatch line" style="background:var(' + s.color + ')"></span>' + s.name + '</div>';
+    }).join('');
+  }
+
   function renderChannelProgress(ch) {
     var container = document.getElementById('channelProgress');
     var weekPlanLeads = ch.data[actualCount];
@@ -919,7 +1024,9 @@
   renderNextWeekTargets();
   fillChannelTable();
   renderLeadsQtdByChannel();
+  drawOrganicTrafficChart();
+  renderOrganicTrafficLegend();
   selectChannel(0);
-  window.addEventListener('resize', function () { drawCumChart(); drawLeadsChart(); });
+  window.addEventListener('resize', function () { drawCumChart(); drawLeadsChart(); drawOrganicTrafficChart(); });
 })();
 </script>
