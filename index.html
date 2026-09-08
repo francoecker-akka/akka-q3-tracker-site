@@ -327,8 +327,8 @@
     </div>
 
     <div class="card">
-      <p class="section-title">Organic traffic by country</p>
-      <p class="section-note">GA4 sessions from organic channels (search, social, video), weekly, by country. The last point is Sep 4-10 so far, still open.</p>
+      <p class="section-title">Non-paid traffic by country</p>
+      <p class="section-note">GA4 sessions from every non-paid channel (direct, organic search/social/video, email, referral, unassigned) -- Paid Search/Social/Other, Cross-network and Display excluded. Weekly, by country. The last point is Sep 4-10 so far, still open.</p>
       <div class="chart-holder">
         <svg id="organicTrafficChart" viewBox="0 0 860 300" style="width:100%; height:auto; display:block;"></svg>
         <div class="tooltip" id="organicTrafficTooltip"></div>
@@ -901,17 +901,19 @@
     });
   }
 
-  // GA4 sessions, session_default_channel_group contains "Organic" (Organic Search/Social/Video),
-  // summed by week and by country group. Pulled by hand from the GA4 connector -- no live refresh yet.
+  // GA4 sessions, every session_default_channel_group EXCEPT the paid ones (Paid Search/Social/Other,
+  // Cross-network, Display) -- so Direct, Organic Search/Social/Video, Email, Referral, Unassigned,
+  // AI Assistant all count. Summed by week and by country group. Pulled by hand from the GA4 connector
+  // -- no live refresh yet.
   var organicWeeks = ["Jul 1-3","Jul 4-9","Jul 10-16","Jul 17-23","Jul 24-30","Jul 31-Aug 6","Aug 7-13","Aug 14-20","Aug 21-27","Aug 28-Sep 3","Sep 4-10"];
-  var organicActualCount = 10; // "Sep 4-10" (index 10) is still open, through Sep 7 only
+  var organicActualCount = 10; // "Sep 4-10" (index 10) is still open, through Sep 8 only
   var organicSeries = [
-    { name: "Spain", color: "--c-spain", data: [171,298,379,337,488,389,307,727,432,452,201] },
-    { name: "Italy", color: "--c-italy", data: [269,451,548,599,540,493,356,642,579,657,354] },
-    { name: "Nordics", color: "--c-nordics", data: [62,141,179,185,112,141,128,175,213,297,165] },
-    { name: "France", color: "--c-france", data: [334,666,1143,1020,5987,1374,301,177,231,315,141] },
-    { name: "US", color: "--c-us", data: [56,116,315,868,251,209,254,212,235,203,38] },
-    { name: "Others", color: "--c-others", data: [332,609,942,910,1291,1070,568,505,570,724,274] }
+    { name: "Spain", color: "--c-spain", data: [651,965,984,1008,1302,1000,654,1119,1040,1643,686] },
+    { name: "Italy", color: "--c-italy", data: [970,1747,1566,1580,1707,1246,969,1295,1594,2291,1225] },
+    { name: "Nordics", color: "--c-nordics", data: [226,334,382,449,436,373,256,318,623,984,409] },
+    { name: "France", color: "--c-france", data: [572,1094,1728,1525,6591,1992,508,323,487,571,277] },
+    { name: "US", color: "--c-us", data: [168,397,611,1165,1027,443,401,373,1203,2195,818] },
+    { name: "Others", color: "--c-others", data: [1095,1683,2029,1998,3528,2194,1267,1285,1852,2932,1070] }
   ];
 
   function drawOrganicTrafficChart() {
